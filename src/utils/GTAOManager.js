@@ -289,6 +289,16 @@ export const GTAOPresets = {
         thickness: 2,
         scale: 1.5,
         intensity: 1.0
+    },
+    // 建模强化版 - 极强的建模间阴影对比
+    modelingEnhanced: {
+        radius: 0.6,        // 增大遮蔽范围
+        samples: 32,        // 最高质量采样
+        blurRadius: 3,      // 减少模糊保持锐利边缘
+        distanceExponent: 1.8, // 强化距离衰减
+        thickness: 2.5,     // 增厚避免漏光
+        scale: 1.8,         // 放大遮蔽效果
+        intensity: 2.0      // 最大强度
     }
 };
 

@@ -1,107 +1,123 @@
 <template>
   <div class="start-menu">
-    <img src="/photo/cover.png" class="background-image" alt="四合院虚拟现实游游" />
+    <img src="/photo/cover.png" class="background-image" alt="四合院虚拟现实游戏" />
     
     <div class="title">
-      <img src="/photo/font.png" class="title-image" alt="四合院虚拟现实游游" />
+      <img src="/photo/font.png" class="title-image" alt="四合院虚拟现实游戏" />
     </div>
 
     <div class="button-left">
       <button class="btn-main" @click="startTour">
-        <span class="btn-text-zh">开始参观</span>
-        <span class="btn-text-en">Start Tour</span>
+        <span class="btn-text-main">{{ t('startTour') }}</span>
       </button>
     </div>
 
     <div class="button-right">
       <button class="btn-main" @click="viewGuide">
-        <span class="btn-text-zh">参观指南</span>
-        <span class="btn-text-en">View Guide</span>
+        <span class="btn-text-main">{{ t('viewGuide') }}</span>
       </button>
     </div>
 
     <div class="button-bottom">
       <button class="btn-icon" @click="settings">
         <span class="icon">⚙</span>
-        <span class="btn-small-text-zh">设置</span>
-        <span class="btn-small-text-en">Settings</span>
+        <span class="btn-small-text">{{ t('settings') }}</span>
       </button>
       
       <button class="btn-icon" @click="about">
         <span class="icon">ⓘ</span>
-        <span class="btn-small-text-zh">关于</span>
-        <span class="btn-small-text-en">About</span>
+        <span class="btn-small-text">{{ t('about') }}</span>
       </button>
       
       <button class="btn-icon" @click="exit">
         <span class="icon">🚪</span>
-        <span class="btn-small-text-zh">退出</span>
-        <span class="btn-small-text-en">Exit</span>
+        <span class="btn-small-text">{{ t('exit') }}</span>
       </button>
       
       <button class="btn-icon" @click="help">
         <span class="icon">❓</span>
-        <span class="btn-small-text-zh">帮助</span>
-        <span class="btn-small-text-en">Help</span>
+        <span class="btn-small-text">{{ t('help') }}</span>
+      </button>
+
+      <button class="btn-icon lang-btn" @click="toggleLanguage">
+        <span class="icon">🌐</span>
+        <span class="btn-small-text">{{ locale === 'zh' ? 'EN' : '中' }}</span>
       </button>
     </div>
 
     <div v-if="showGuide" class="modal-overlay" @click="closeGuide">
       <div class="modal-content" @click.stop>
-        <h2>参观指南 View Guide</h2>
+        <h2>{{ t('guideTitle') }}</h2>
         <div class="guide-text">
-          <p><strong>移动控制：</strong></p>
+          <p><strong>{{ t('controls') }}</strong></p>
           <ul>
-            <li>WASD - 移动方向</li>
-            <li>鼠标 - 视角转动</li>
-            <li>空格 - 跳跃</li>
-            <li>G - 切换飞行模式</li>
-            <li>飞行模式下：Shift下降 / Space上升</li>
+            <li>{{ t('wasd') }}</li>
+            <li>{{ t('mouse') }}</li>
+            <li>{{ t('space') }}</li>
+            <li>{{ t('flyMode') }}</li>
+            <li>{{ t('flyControls') }}</li>
           </ul>
-          <p><strong>其他操作：</strong></p>
+          <p><strong>{{ t('otherOps') }}</strong></p>
           <ul>
-            <li>ESC - 打开设置菜单</li>
-            <li>点击屏幕 - 重新锁定鼠标</li>
+            <li>{{ t('escMenu') }}</li>
+            <li>{{ t('clickLock') }}</li>
           </ul>
         </div>
-        <button class="btn-close" @click="closeGuide">关闭</button>
+        <button class="btn-close" @click="closeGuide">{{ t('close') }}</button>
       </div>
     </div>
 
     <div v-if="showAbout" class="modal-overlay" @click="closeAbout">
       <div class="modal-content" @click.stop>
-        <h2>关于 About</h2>
+        <h2>{{ t('aboutTitle') }}</h2>
         <div class="about-text">
-          <p><strong>四合院虚拟现实游游</strong></p>
-          <p>Siheyuan Tour Model</p>
-          <p style="margin-top: 20px;">基于 Three.js + Rapier 构建的四合院虚拟游览系统</p>
-          <p>By Mello</p>
+          <p><strong>{{ t('appName') }}</strong></p>
+          <p>{{ t('subtitle') }}</p>
+          <p style="margin-top: 20px;">{{ t('tech') }}</p>
+          <p>{{ t('author') }}</p>
         </div>
-        <button class="btn-close" @click="closeAbout">关闭</button>
+        <button class="btn-close" @click="closeAbout">{{ t('close') }}</button>
       </div>
     </div>
 
     <div v-if="showSettings" class="modal-overlay" @click="closeSettings">
       <div class="modal-content" @click.stop>
-        <h2>设置 Settings</h2>
+        <h2>{{ t('settingsTitle') }}</h2>
         <div class="settings-content">
-          <p>设置选项将在游戏内通过ESC键访问</p>
+          <p>{{ t('settingsDesc') }}</p>
+          <div class="lang-switch">
+            <span>{{ t('language') }}:</span>
+            <button class="lang-option" :class="{ active: locale === 'zh' }" @click.stop="toggleLanguage">
+              {{ t('zhLang') }}
+            </button>
+            <button class="lang-option" :class="{ active: locale === 'en' }" @click.stop="toggleLanguage">
+              {{ t('enLang') }}
+            </button>
+          </div>
         </div>
-        <button class="btn-close" @click="closeSettings">关闭</button>
+        <button class="btn-close" @click="closeSettings">{{ t('close') }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { i18n } from '../utils/i18n.js';
+
 export default {
   name: 'StartMenu',
   data() {
     return {
       showGuide: false,
       showAbout: false,
-      showSettings: false
+      showSettings: false,
+      locale: i18n.getLocale()
     };
+  },
+  computed: {
+    t() {
+      return i18n.t.bind(i18n);
+    }
   },
   methods: {
     startTour() {
@@ -132,6 +148,11 @@ export default {
     },
     help() {
       this.viewGuide();
+    },
+    toggleLanguage() {
+      const newLocale = this.locale === 'zh' ? 'en' : 'zh';
+      i18n.setLocale(newLocale);
+      this.locale = newLocale;
     }
   }
 };
@@ -166,8 +187,8 @@ export default {
 }
 
 .title-image {
-  max-width: 500px;
-  width: 30vw;
+  max-width: 800px;
+  width: 100vw;
   height: auto;
   filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
 }
@@ -187,12 +208,12 @@ export default {
 }
 
 .btn-main {
-  width: 420px;
-  height: 110px;
-  background: linear-gradient(180deg, #ff9933 0%, #ff7700 50%, #ee6600 100%);
-  border: 5px solid #8b4513;
-  border-radius: 16px;
-  box-shadow: 0 8px 0 #5a2d0a, 0 12px 20px rgba(0,0,0,0.5);
+  width: 340px;
+  height: 90px;
+  background: linear-gradient(180deg, #d49a5a 0%, #b87533 45%, #8a4b16 100%);
+  border: 5px solid #5b2e0b;
+  border-radius: 20px;
+  box-shadow: 0 10px 0 #4a2508, 0 16px 24px rgba(0,0,0,0.55);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -201,33 +222,45 @@ export default {
   justify-content: center;
   gap: 4px;
   position: relative;
+  overflow: hidden;
 }
 
 .btn-main:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 0 #5a2d0a, 0 16px 25px rgba(0,0,0,0.6);
+  transform: translateY(-3px);
+  box-shadow: 0 13px 0 #4a2508, 0 20px 28px rgba(0,0,0,0.65);
 }
 
 .btn-main:active {
-  transform: translateY(4px);
-  box-shadow: 0 4px 0 #5a2d0a, 0 6px 12px rgba(0,0,0,0.4);
+  transform: translateY(3px);
+  box-shadow: 0 5px 0 #3a1a06, 0 8px 14px rgba(0,0,0,0.45);
+}
+
+.btn-main::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05));
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .btn-text-zh {
-  font-size: 42px;
+  font-size: 32px;
   font-weight: 900;
   color: white;
-  text-shadow: 3px 3px 0 rgba(0,0,0,0.5), 
-               -1px -1px 0 rgba(255,255,255,0.3);
+  text-shadow: 3px 3px 0 rgba(0,0,0,0.7),
+               0 0 6px rgba(0,0,0,0.6);
   font-family: 'Microsoft YaHei', Arial, sans-serif;
   letter-spacing: 2px;
 }
 
 .btn-text-en {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 700;
   color: white;
-  text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.6);
   font-family: Arial, sans-serif;
   letter-spacing: 1px;
 }
@@ -283,13 +316,59 @@ export default {
   display: block;
 }
 
-.btn-small-text-en {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.85);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
-  font-family: Arial, sans-serif;
+.btn-small-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
   display: block;
+}
+
+.btn-text-main {
+  font-size: 32px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 3px 3px 0 rgba(0,0,0,0.7),
+               0 0 6px rgba(0,0,0,0.6);
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  letter-spacing: 2px;
+}
+
+.lang-btn {
+  background: linear-gradient(180deg, #4a9eff 0%, #2a6ecc 100%);
+  border-color: #1a4e9c;
+}
+
+.lang-btn:hover {
+  background: linear-gradient(180deg, #5aaeff 0%, #3a7edc 100%);
+}
+
+.lang-switch {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.lang-option {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-option.active {
+  background: rgba(90, 158, 255, 0.5);
+  border-color: rgba(90, 158, 255, 0.8);
+}
+
+.lang-option:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 .modal-overlay {
@@ -369,7 +448,7 @@ export default {
 
 @media (max-width: 1024px) {
   .title-image {
-    width: 70vw;
+    width: 100vw;
   }
   .button-left, .button-right {
     left: 50%;
@@ -383,14 +462,14 @@ export default {
     bottom: 180px;
   }
   .btn-main {
-    width: 320px;
-    height: 90px;
+    width: 280px;
+    height: 80px;
   }
   .btn-text-zh {
-    font-size: 32px;
+    font-size: 26px;
   }
   .btn-text-en {
-    font-size: 20px;
+    font-size: 16px;
   }
 }
 </style>

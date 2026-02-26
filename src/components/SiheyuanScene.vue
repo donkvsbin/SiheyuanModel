@@ -2,74 +2,160 @@
   <div ref="container" class="scene-container">
     <div v-if="loading" class="loading-overlay">
       <div class="loading-content">
+        <div class="loading-hint">{{ currentLoadingHintText }}</div>
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: loadingProgress + '%' }"></div>
         </div>
         <div class="loading-text">{{ loadingProgress.toFixed(0) }}%</div>
       </div>
     </div>
+    <!-- XYZ坐标和FPS - 右上角 -->
     <div class="player-info" v-if="!loading && player">
       <div>X: {{ playerPos.x.toFixed(2) }}</div>
       <div>Y: {{ playerPos.y.toFixed(2) }}</div>
       <div>Z: {{ playerPos.z.toFixed(2) }}</div>
-
+      <div>FPS: {{ currentFPS }}</div>
     </div>
-    <div class="footer-text" v-if="!loading">By Mello</div>
+    <!-- 交互提示：靠近可交互对象且未打开设置面板时显示 -->
+    <transition name="hint">
+      <div
+        v-if="!loading && currentInteraction && !showSettings && !isInDialogue"
+        class="interaction-hint"
+      >
+        <div class="interaction-bg">
+          <span class="interaction-text">{{ getInteractionDisplayName() }}</span>
+        </div>
+      </div>
+    </transition>
+    <!-- 当前位置显示 -->
+    <div class="location-hint" v-if="!loading && displayLocationImage" :class="{ 'fade-out': isLocationFadingOut }" :style="{ backgroundImage: 'url(' + displayLocationImage + ')' }">
+    </div>
     <div class="settings-overlay" v-if="showSettings">
       <div class="settings-panel">
-        <h2 class="settings-title">设置</h2>
+        <h2 class="settings-title">{{ t('settingsTitle') }}</h2>
 
-        <section class="settings-section">
-          <h3 class="settings-section-title">视频选项</h3>
+        <!-- 主菜单：分类选择 -->
+        <div v-if="!settingsCategory" class="settings-menu">
+          <button class="menu-btn" @click="settingsCategory = 'video'">
+            <span class="menu-icon">🎨</span>
+            {{ t('videoOptions') }}
+          </button>
+          <button class="menu-btn" @click="settingsCategory = 'music'">
+            <span class="menu-icon">🎵</span>
+            {{ t('musicOptions') }}
+          </button>
+          <button class="menu-btn" @click="settingsCategory = 'perf'">
+            <span class="menu-icon">⚡</span>
+            {{ t('perfOptions') }}
+          </button>
+          <button class="menu-btn" @click="settingsCategory = 'time'">
+            <span class="menu-icon">🌅</span>
+            {{ t('timeOptions') }}
+          </button>
+          <button class="menu-btn" @click="settingsCategory = 'language'">
+            <span class="menu-icon">🌐</span>
+            {{ t('language') }}
+          </button>
+        </div>
+
+        <!-- 视频设置 -->
+        <div v-if="settingsCategory === 'video'" class="settings-detail">
+          <h3 class="settings-section-title">{{ t('videoOptions') }}</h3>
           <div class="settings-group">
-            <label>环境光强度 {{ ambientIntensity.toFixed(2) }}</label>
+            <label>{{ t('ambientLight') }} {{ ambientIntensity.toFixed(2) }}</label>
             <input type="range" v-model.number="ambientIntensity" min="0" max="2" step="0.05" />
           </div>
           <div class="settings-group">
-            <label>平行光强度 {{ directionalIntensity.toFixed(1) }}</label>
+            <label>{{ t('dirLight') }} {{ directionalIntensity.toFixed(1) }}</label>
             <input type="range" v-model.number="directionalIntensity" min="0" max="15" step="0.5" />
           </div>
           <div class="settings-group">
-            <label>泛光强度 {{ bloomStrength.toFixed(2) }}</label>
+            <label>{{ t('bloom') }} {{ bloomStrength.toFixed(2) }}</label>
             <input type="range" v-model.number="bloomStrength" min="0" max="1" step="0.05" />
           </div>
           <div class="settings-group">
-            <label>曝光 {{ toneMappingExposure.toFixed(2) }}</label>
+            <label>{{ t('exposure') }} {{ toneMappingExposure.toFixed(2) }}</label>
             <input type="range" v-model.number="toneMappingExposure" min="0.3" max="2.5" step="0.05" />
           </div>
-        </section>
+          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
+        </div>
 
-        <section class="settings-section">
-          <h3 class="settings-section-title">音乐选项</h3>
+        <!-- 音乐设置 -->
+        <div v-if="settingsCategory === 'music'" class="settings-detail">
+          <h3 class="settings-section-title">{{ t('musicOptions') }}</h3>
           <div class="settings-group settings-row">
-            <label>开启音乐</label>
+            <label>{{ t('enableMusic') }}</label>
             <input type="checkbox" v-model="musicEnabled" />
           </div>
           <div class="settings-group">
-            <label>音量 {{ (musicVolume * 100).toFixed(0) }}%</label>
+            <label>{{ t('volume') }} {{ (musicVolume * 100).toFixed(0) }}%</label>
             <input type="range" v-model.number="musicVolume" min="0" max="1" step="0.05" />
           </div>
-        </section>
+          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
+        </div>
 
-        <section class="settings-section">
-          <h3 class="settings-section-title">性能选项</h3>
+        <!-- 性能设置 -->
+        <div v-if="settingsCategory === 'perf'" class="settings-detail">
+          <h3 class="settings-section-title">{{ t('perfOptions') }}</h3>
           <div class="settings-group">
-            <label>最高FPS {{ targetFPS }}</label>
-            <input type="range" v-model.number="targetFPS" min="15" max="60" step="5" />
+            <label>{{ t('maxFPS') }} {{ targetFPS }}</label>
+            <input type="range" v-model.number="targetFPS" min="15" max="90" step="5" />
           </div>
-        </section>
+          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
+        </div>
 
-        <section class="settings-section">
-          <h3 class="settings-section-title">时间选项</h3>
+        <!-- 时间设置 -->
+        <div v-if="settingsCategory === 'time'" class="settings-detail">
+          <h3 class="settings-section-title">{{ t('timeOptions') }}</h3>
           <div class="settings-group">
-            <label>太阳时间 {{ sunTime }}:00</label>
+            <label>{{ t('sunTime') }} {{ sunTime }}:00</label>
             <input type="range" v-model.number="sunTime" min="9" max="18" step="1" />
           </div>
-        </section>
+          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
+        </div>
 
-        <button class="settings-btn" @click="requestLock">回到游戏</button>
+        <!-- 语言设置 -->
+        <div v-if="settingsCategory === 'language'" class="settings-detail">
+          <h3 class="settings-section-title">{{ t('language') }}</h3>
+          <div class="settings-group settings-row lang-switch">
+            <button class="lang-btn" :class="{ active: locale === 'zh' }" @click="setLocale('zh')">
+              {{ t('zhLang') }}
+            </button>
+            <button class="lang-btn" :class="{ active: locale === 'en' }" @click="setLocale('en')">
+              {{ t('enLang') }}
+            </button>
+          </div>
+          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
+        </div>
+
+        <button v-if="!settingsCategory" class="settings-btn" @click="requestLock">{{ t('backToGame') }}</button>
       </div>
     </div>
+
+    <!-- 书法临摹界面 -->
+    <CalligraphyPractice v-if="showCalligraphyPractice" :locale="locale" @close="showCalligraphyPractice = false" @enter="isInCalligraphy = true" />
+
+    <!-- 茶道小游戏界面 -->
+    <TeaCeremony
+      ref="teaCeremony"
+      :visible="showTeaCeremony"
+      :locale="locale"
+      :current-step="teaCeremonyStep"
+      :score="teaCeremonyScore"
+      :rating="teaCeremonyRating"
+      :is-complete="teaCeremonyComplete"
+      @close="handleTeaCeremonyClose"
+      @start="handleTeaStart"
+    />
+
+    <!-- 收集系统界面 -->
+    <CollectionView
+      v-if="showCollection"
+      :visible="showCollection"
+      :collection-system="collectionSystem"
+      :locale="locale"
+      @close="closeCollection"
+    />
   </div>
 </template>
 
@@ -91,8 +177,22 @@ import { VignettePass } from '../utils/VignettePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import RAPIER from '@dimforge/rapier3d-compat';
+import { StoryManager } from '../game/StoryManager.js';
+import { DialogueSystem } from '../game/DialogueSystem.js';
+import { CollectionSystem } from '../game/CollectionSystem.js';
+import { getStoryData, interactionPoints, getShortDialogue, getTipsText, getCollectionData } from '../data/storyData.js';
+import { i18n } from '../utils/i18n.js';
+import CalligraphyPractice from './CalligraphyPractice.vue';
+import TeaCeremony from './TeaCeremony.vue';
+import CollectionView from './CollectionView.vue';
+import { TeaCeremony as TeaCeremonyGame } from '../game/TeaCeremony.js';
 
 export default {
+  components: {
+    CalligraphyPractice,
+    TeaCeremony,
+    CollectionView
+  },
   data() {
     return {
       player: null,
@@ -107,13 +207,19 @@ export default {
       isDragging: false,
       loading: true,
       loadingProgress: 0,
+      // 加载提示语索引
+      currentLoadingHintIndex: 0,
       collidableObjects: [],
       playerPos: { x: 0, y: 0, z: 0 },
       oldman: null,
       oldmanMixer: null,
       oldmanAction: null,
+      // 与老人交互相关
+      isNearOldman: false,
+      oldmanInteractDistance: 3.0,
       verticalVelocity: 0,
       isGrounded: false,
+      groundedGraceTime: 0,
       flyMode: false, // 飞行模式开关
       // 太阳位置：约 9～10 点早晨光（偏东、较低角度）
       sunOffset: { x: 100, y: 85, z: 25 },
@@ -122,21 +228,98 @@ export default {
       sunWorldPosition: null,
       sunLightDirection: null,
       // 画质/光照设置（ESC 面板可调）
-      ambientIntensity: 0.75,
-      directionalIntensity: 4,
+      // 默认环境光压暗一点、方向光更强，配合 AO 让方块之间的阴影更明显（类似 MC）
+      ambientIntensity: 0.6,
+      directionalIntensity: 4.5,
+      // AO 参数：专门控制“建模与建模之间”的平滑阴影
+      aoIntensity: 2.8, // 强化强度，让建模间阴影更加明显
+      aoRadius: 3.5,   // 增大范围，强化遮蔽效果
       bloomStrength: 0.2,
-      toneMappingExposure: 1.4  ,
-      targetFPS: 60, // 目标帧率
+      toneMappingExposure: 1.25  ,
+      targetFPS: 90, // 目标帧率
       sunTime: 10, // 太阳时间 9~18点
       // 音乐：随机播放，本轮播过的不重复，播完一轮再进入下一轮
       musicEnabled: true,
       musicVolume: 0.5,
       bgm: null,
       _musicDelayTimer: null,
-      _bgmTracksRemaining: null // 当前轮未播放的曲目，空则重新洗牌
+      _bgmTracksRemaining: null, // 当前轮未播放的曲目，空则重新洗牌
+      // 剧情系统
+      storyManager: null,
+      dialogueSystem: null,
+      isInDialogue: false,
+      currentInteraction: null,
+      pointerLockJustActivated: false,
+      // 语言
+      locale: i18n.getLocale(),
+      // 设置分类
+      settingsCategory: null,
+      // 当前位置
+      currentLocationImage: '',
+      displayLocationImage: '',
+      isLocationFadingOut: false,
+      // 秋千状态
+      isOnSwing: false,
+      swingPosition: { x: -8, y: 16, z: 1 },
+      swingReturnPosition: null,
+      // FPS显示
+      currentFPS: 60,
+      // 书法临摹界面
+      showCalligraphyPractice: false,
+      // 临摹模式状态
+      isInCalligraphy: false,
+      // 茶道游戏状态
+      showTeaCeremony: false,
+      teaCeremonyStep: 0,
+      teaCeremonyScore: 0,
+      teaCeremonyRating: { text: '' },
+      teaCeremonyComplete: false,
+      teaCeremonyGame: null,
+      teaCeremonyStartTime: 0,
+      hasCompletedTeaCeremony: false,
+      // 收集系统
+      collectionSystem: null,
+      showCollection: false
     };
   },
+  computed: {
+    t() {
+      return i18n.t.bind(i18n);
+    },
+    currentLoadingHintText() {
+      const hints = ['loadingHint1', 'loadingHint2', 'loadingHint3', 'loadingHint4'];
+      return this.t(hints[this.currentLoadingHintIndex]);
+    }
+  },
   watch: {
+    showCalligraphyPractice(v) {
+      // 临摹界面关闭时，恢复游戏控制
+      if (!v) {
+        this.isInCalligraphy = false;
+        // 重新锁定鼠标
+        this.requestLock();
+      }
+    },
+    showTeaCeremony(v) {
+      // 茶道界面关闭时，恢复游戏控制
+      if (!v) {
+        if (this.teaCeremonyGame) {
+          this.teaCeremonyGame.end();
+        }
+        this.teaCeremonyStep = null;
+        this.teaCeremonyScore = 0;
+        this.teaCeremonyRating = { text: '' };
+        this.teaCeremonyComplete = false;
+        // 重新锁定鼠标
+        this.requestLock();
+      }
+    },
+    showCollection(v) {
+      // 收集界面关闭时，恢复游戏控制
+      if (!v) {
+        this.requestLock();
+      }
+    },
     musicEnabled(v) {
       if (this.bgm) {
         this.bgm.muted = !v;
@@ -146,12 +329,27 @@ export default {
     },
     musicVolume(v) {
       if (this.bgm) this.bgm.volume = Math.max(0, Math.min(1, v));
+    },
+    // AO 相关：滑杆一动就实时更新"建模之间的阴影"
+    aoIntensity(v) {
+      if (this.gtaoManager) {
+        this.gtaoManager.setIntensity(v);
+      }
+    },
+    aoRadius(v) {
+      if (this.gtaoManager) {
+        this.gtaoManager.setRadius(v);
+      }
     }
   },
   mounted() {
     this.initRapier().then(() => {
       this.init();
       this.setupKeyboard();
+      this.startLoadingHints();
+      this.initStorySystem();
+      this.initCollectionSystem();
+      this.initI18n();
     });
   },
   beforeUnmount() {
@@ -234,16 +432,16 @@ export default {
       const renderPass = new RenderPass(scene, camera);
       composer.addPass(renderPass);
 
-      // 先做 GTAO（方块间自然光影），再做 Bloom，这样缝隙阴影不依赖"是否看到太阳光晕"
+      // 先做 GTAO（方块间自然光影），再做 Bloom
+      // 使用建模强化版预设，极大增强建模间的阴影对比度
       this.gtaoManager = new GTAOManager({
-        radius: 0.8,
-        samples: 8,
-        blurRadius: 3,
-        distanceExponent: 1.1,
-        thickness: 1.6,
-        scale: 2.5,
-        resolutionScale: 0.5,
-        intensity: 3.6
+        ...GTAOPresets.modelingEnhanced,
+        radius: this.aoRadius,
+        intensity: this.aoIntensity,
+        samples: 32,      // 最高采样质量
+        distanceExponent: 1.8, // 强化距离衰减
+        blurRadius: 2,    // 最小模糊保持锐利边缘
+        thickness: 3.0    // 最大厚度补偿
       });
       const gtaoPass = this.gtaoManager.init(scene, camera, window.innerWidth, window.innerHeight);
       composer.addPass(gtaoPass);
@@ -293,12 +491,9 @@ export default {
       const outputPass = new OutputPass();
       composer.addPass(outputPass);
 
-      // FPS 统计
+      // FPS 统计（隐藏DOM，仅用于数据更新）
       const stats = new Stats();
-      stats.dom.style.position = 'absolute';
-      stats.dom.style.top = '0px';
-      stats.dom.style.left = '0px';
-      this.$refs.container.appendChild(stats.dom);
+      stats.dom.style.display = 'none';
 
       // 控制器（禁用干扰）
       const controls = new OrbitControls(camera, renderer.domElement);
@@ -331,9 +526,9 @@ export default {
       directionalLight.shadow.camera.right = 60;
       directionalLight.shadow.camera.top = 60;
       directionalLight.shadow.camera.bottom = -60;
-      directionalLight.shadow.bias = -0.0004;
+      directionalLight.shadow.bias = -0.0005;
       directionalLight.shadow.normalBias = 0.05;
-      directionalLight.shadow.radius = 5;
+      directionalLight.shadow.radius = 2;
       this.directionalLight = directionalLight;
       scene.add(directionalLight);
 
@@ -341,6 +536,12 @@ export default {
       const moveDir = new THREE.Vector3();
       const finalDir = new THREE.Vector3();
       const clock = new THREE.Clock();
+      const stairStepHeight = 0.5;
+      const stairStepTolerance = 0.04;
+      const stairSnapDistance = stairStepHeight + 0.08;
+      const stairCameraSmooth = 14;
+      const cameraEyeHeight = 1.2;
+      let smoothedCameraY = null;
 
       // 帧率限制
       let lastFrameTime = 0;
@@ -351,6 +552,149 @@ export default {
       const dracoLoader = new DRACOLoader();
       dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
       loader.setDRACOLoader(dracoLoader);
+
+      // 加载引导箭头模型
+      const loadGuidance = () => {
+        const guidanceLoader = new GLTFLoader();
+        guidanceLoader.setDRACOLoader(dracoLoader);
+        guidanceLoader.load(
+          '/models/guidance.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-24, 16, -30);
+            model.rotation.x = Math.PI; // 倒置向下
+            model.scale.setScalar(0.7);
+            scene.add(model);
+            this.guidance = model;
+            this.guidanceBaseY = 16;
+            this.guidanceTime = 0;
+          },
+          undefined,
+          (err) => {
+            console.error('引导箭头模型加载失败:', err);
+          }
+        );
+      };
+
+      // 加载第二个引导箭头模型
+      const loadArrow2 = () => {
+        const arrow2Loader = new GLTFLoader();
+        arrow2Loader.setDRACOLoader(dracoLoader);
+        arrow2Loader.load(
+          '/models/guidance.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-24, 15, -10.7);
+            model.rotation.x = Math.PI; // 倒置向下
+            model.scale.setScalar(0.7);
+            scene.add(model);
+            this.arrow2 = model;
+            this.arrow2BaseY = 16.5;
+            this.arrow2Time = 0;
+          },
+          undefined,
+          (err) => {
+            console.error('第二个箭头模型加载失败:', err);
+          }
+        );
+      };
+
+      // 加载screenwall模型
+      const loadScreenWall = () => {
+        const screenWallLoader = new GLTFLoader();
+        screenWallLoader.setDRACOLoader(dracoLoader);
+        screenWallLoader.load(
+          '/models/screenwall.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-24, 17.7, -10.5);
+            model.scale.setScalar(2.5);
+            model.rotation.x = Math.PI;
+            model.rotation.y = Math.PI / 2;
+            scene.add(model);
+            this.screenWall = model;
+          },
+          undefined,
+          (err) => {
+            console.error('screenwall模型加载失败:', err);
+          }
+        );
+      };
+
+      const loadCalligraphy = () => {
+        const calligraphyLoader = new GLTFLoader();
+        calligraphyLoader.setDRACOLoader(dracoLoader);
+        calligraphyLoader.load(
+          '/models/calligraphy.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(1, 15.75, 18.5);
+            model.scale.setScalar(1.5);
+            model.rotation.y = Math.PI / 2;
+            scene.add(model);
+            this.calligraphy = model;
+            //console.log('calligraphy模型加载成功，位置:', model.position);
+          },
+          undefined,
+          (err) => {
+            console.error('calligraphy模型加载失败:', err);
+          }
+        );
+      };
+
+      // 加载所有箭头模型（复用同一个素材）
+      const loadAllArrows = () => {
+        const arrowLoader = new GLTFLoader();
+        arrowLoader.setDRACOLoader(dracoLoader);
+        arrowLoader.load(
+          '/models/guidance.glb',
+          (gltf) => {
+            // 创建箭头实例的辅助函数
+            const createArrow = (position, baseY, name) => {
+              const model = gltf.scene.clone();
+              model.position.set(position.x, position.y, position.z);
+              model.rotation.x = Math.PI;
+              model.scale.setScalar(0.7);
+              scene.add(model);
+              return { model, baseY, time: 0 };
+            };
+
+            // 正房箭头
+            const mainhouse = createArrow({ x: 1, y: 16, z: 40 }, 16, 'mainhouse');
+            this.mainhouseArrow = mainhouse.model;
+            this.mainhouseArrowBaseY = mainhouse.baseY;
+            this.mainhouseArrowTime = mainhouse.time;
+
+            // 东厢房箭头
+            const eastwing = createArrow({ x: -22, y: 19, z: 20 }, 17, 'eastwing');
+            this.eastwingArrow = eastwing.model;
+            this.eastwingArrowBaseY = eastwing.baseY;
+            this.eastwingArrowTime = eastwing.time;
+
+            // 西厢房箭头
+            const westwing = createArrow({ x: 24, y: 17, z: 20 }, 17, 'westwing');
+            this.westwingArrow = westwing.model;
+            this.westwingArrowBaseY = westwing.baseY;
+            this.westwingArrowTime = westwing.time;
+
+            // 垂花门箭头
+            const chuihua = createArrow({ x: 1, y: 15, z: -10 }, 16.5, 'chuihua');
+            this.chuihuaArrow = chuihua.model;
+            this.chuihuaArrowBaseY = chuihua.baseY;
+            this.chuihuaArrowTime = chuihua.time;
+
+            // 石榴树箭头
+            const pomegranate = createArrow({ x: -5, y: 16, z: 30 }, 16, 'pomegranate');
+            this.pomegranateArrow = pomegranate.model;
+            this.pomegranateArrowBaseY = pomegranate.baseY;
+            this.pomegranateArrowTime = pomegranate.time;
+          },
+          undefined,
+          (err) => {
+            console.error('箭头模型加载失败:', err);
+          }
+        );
+      };
 
       // 加载老人 GLB 模型（在四合院场景加载完成后执行）
       const loadOldman = () => {
@@ -372,7 +716,7 @@ export default {
 
             // 设置缩放、位置与旋转（模型趴姿改站立，方向转180度）
             model.scale.setScalar(2.5,0); // 放大2倍
-            model.position.set(5, 9.5, -37);
+            model.position.set(-2, 14.5, -36);
             model.rotation.x = -Math.PI ; // X轴旋转-90度，从趴姿改为站立
             model.rotation.z = Math.PI; // Y轴旋转180度，调整朝向
             
@@ -395,7 +739,13 @@ export default {
             
             scene.add(model);
             this.oldman = model;
-            console.log('老人模型已添加到场景，位置:', model.position);
+
+            // 创建老爷爷碰撞体（圆柱体包围盒）
+            const oldmanColliderDesc = RAPIER.ColliderDesc.cylinder(1.5, 0.8)
+              .setTranslation(-2, 14.5 + 1.5, -36)
+              .setFriction(0)
+              .setRestitution(0);
+            this.world.createCollider(oldmanColliderDesc);
 
             // 播放动画
             if (gltf.animations && gltf.animations.length > 0) {
@@ -407,7 +757,7 @@ export default {
             }
           },
           (progress) => {
-            console.log('老人模型加载进度:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+            //console.log('老人模型加载进度:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
           },
           (err) => {
             console.error('老人人物 GLB 加载失败:', err);
@@ -415,8 +765,171 @@ export default {
         );
       };
 
+      // 加载老妇人抚摸猫模型
+      const loadOldwomanPetting = () => {
+        const oldwomanLoader = new GLTFLoader();
+        oldwomanLoader.setDRACOLoader(dracoLoader);
+        oldwomanLoader.setMeshoptDecoder(MeshoptDecoder);
+        oldwomanLoader.load(
+          '/models/petting.glb',
+          (gltf) => {
+            console.log('老妇人模型加载成功:', gltf);
+            const model = gltf.scene;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            // 设置位置与旋转
+            model.scale.setScalar(2.5);
+            model.position.set(-7, 14.7, 22);
+            //model.rotation.y = Math.PI / 2;
+            
+            // 提高模型亮度并修复透明穿透
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                materials.forEach(mat => {
+                  mat.emissive = new THREE.Color(0x222222);
+                  mat.emissiveIntensity = 0.3;
+                  mat.transparent = false;
+                  mat.side = THREE.FrontSide;
+                  mat.depthWrite = true;
+                  mat.depthTest = true;
+                });
+              }
+            });
+            
+            scene.add(model);
+            this.oldwomanPetting = model;
+
+            // 创建老奶奶碰撞体（圆柱体包围盒）
+            const oldwomanColliderDesc = RAPIER.ColliderDesc.cylinder(1.5, 0.8)
+              .setTranslation(-7, 14.7 + 1.5, 22)
+              .setFriction(0)
+              .setRestitution(0);
+            this.world.createCollider(oldwomanColliderDesc);
+
+            // 播放动画
+            if (gltf.animations && gltf.animations.length > 0) {
+              const mixer = new THREE.AnimationMixer(model);
+              const action = mixer.clipAction(gltf.animations[0]);
+              action.play();
+              this.oldwomanPettingMixer = mixer;
+            }
+          },
+          undefined,
+          (err) => {
+            console.error('老妇人模型加载失败:', err);
+          }
+        );
+      };
+
+      // 加载猫模型
+      const loadCat = () => {
+        const catLoader = new GLTFLoader();
+        catLoader.setDRACOLoader(dracoLoader);
+        catLoader.setMeshoptDecoder(MeshoptDecoder);
+        catLoader.load(
+          '/models/cat.glb',
+          (gltf) => {
+            //console.log('猫模型加载成功:', gltf);
+            const model = gltf.scene;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            // 设置位置与缩放
+            model.scale.setScalar(1);
+            model.position.set(-8, 14.8, 26);
+            model.rotation.y = Math.PI / 3;
+            
+            // 提高模型亮度并修复透明穿透
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                materials.forEach(mat => {
+                  mat.emissive = new THREE.Color(0x222222);
+                  mat.emissiveIntensity = 0.3;
+                  mat.transparent = false;
+                  mat.side = THREE.FrontSide;
+                  mat.depthWrite = true;
+                  mat.depthTest = true;
+                });
+              }
+            });
+            
+            scene.add(model);
+            this.cat = model;
+
+            // 创建猫碰撞体（小球体）
+            const catColliderDesc = RAPIER.ColliderDesc.ball(0.5)
+              .setTranslation(-8, 14.8 + 0.5, 26)
+              .setFriction(0)
+              .setRestitution(0);
+            this.world.createCollider(catColliderDesc);
+          },
+          undefined,
+          (err) => {
+            console.error('猫模型加载失败:', err);
+          }
+        );
+      };
+
+      // 加载茶点模型
+      const loadTea = () => {
+        const teaLoader = new GLTFLoader();
+        teaLoader.setDRACOLoader(dracoLoader);
+        teaLoader.setMeshoptDecoder(MeshoptDecoder);
+        teaLoader.load(
+          '/models/tea.glb',
+          (gltf) => {
+            console.log('茶点模型加载成功:', gltf);
+            const model = gltf.scene;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            // 设置位置与缩放
+            model.scale.setScalar(1);
+            model.position.set(1, 15.7, 22);
+            model.rotation.y = -Math.PI / 2;
+
+            // 提高模型亮度并修复透明穿透
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                materials.forEach(mat => {
+                  mat.emissive = new THREE.Color(0x222222);
+                  mat.emissiveIntensity = 0.3;
+                  mat.transparent = false;
+                  mat.side = THREE.FrontSide;
+                  mat.depthWrite = true;
+                  mat.depthTest = true;
+                });
+              }
+            });
+            
+            scene.add(model);
+            this.tea = model;
+          },
+          undefined,
+          (err) => {
+            console.error('茶点模型加载失败:', err);
+          }
+        );
+      };
+
       loader.load(
-        '/models/demo5.glb',
+        '/models/demo7.glb',
         (gltf) => {
           gltf.scene.traverse((child) => {
             if (child.isMesh) {
@@ -438,19 +951,10 @@ export default {
                   mat.needsUpdate = true;
                 }
 
-                // 检测发光材质并添加点光源
+                // 检测发光材质（仅保留材质自发光效果，不添加点光源以避免性能问题）
                 if (mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0)) {
-                  const worldPos = new THREE.Vector3();
-                  child.updateMatrixWorld();
-                  child.getWorldPosition(worldPos);
-
-                  // 创建点光源：柔和发光，强度1.5，距离5米
-                  const intensity = (mat.emissiveIntensity || 1) * 1.5;
-                  const pointLight = new THREE.PointLight(mat.emissive, intensity, 5);
-                  pointLight.position.copy(worldPos);
-                  pointLight.castShadow = false;
-                  pointLight.decay = 2; // 平方衰减
-                  scene.add(pointLight);
+                  // 仅增强材质自发光效果
+                  mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 0, 0.5);
                 }
               });
 
@@ -495,18 +999,23 @@ export default {
           // --- 所有模型加载完成后，再初始化人物 ---
           // 创建动力学刚体 (Kinematic Character)，起始高度设为 20
           const playerDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
-            .setTranslation(5, 10, -58);
+            .setTranslation(-2, 15, -58);
           this.playerBody = this.world.createRigidBody(playerDesc);
 
-          // 创建胶囊体碰撞器 (半径 0.25, 高度 0.8, 总高 1.3)
-          const capsuleColliderDesc = RAPIER.ColliderDesc.capsule(0.4, 0.25);
+          // 创建胶囊体碰撞器 (半径 0.2, 高度 0.8, 总高 1.2)
+          // 减小半径增加边缘冗余，摩擦力设为0防止低速挂边
+          const capsuleColliderDesc = RAPIER.ColliderDesc.capsule(0.4, 0.2)
+            .setFriction(0)
+            .setRestitution(0);
           this.world.createCollider(capsuleColliderDesc, this.playerBody);
 
           // 创建人物控制器
-          // 略大 margin 减少楼梯棱角卡顿；步高/步宽配合楼梯；较弱贴地减少上下楼抖动
-          this.playerController = this.world.createCharacterController(0.05);
-          this.playerController.enableAutostep(0.5, 0.4, true);
-          this.playerController.enableSnapToGround(0.15);
+          // 优化参数：较小偏移量+大步高+强贴地，确保低速上楼梯顺滑
+          this.playerController = this.world.createCharacterController(0.005);
+          this.playerController.enableAutostep(stairStepHeight + stairStepTolerance, 0.02, true);
+          this.playerController.enableSnapToGround(stairSnapDistance);
+          this.playerController.setMaxSlopeClimbAngle(1.5);
+          this.playerController.setMinSlopeSlideAngle(0.5);
 
           // Three.js 人物表现 (绿色胶囊体)
           const capsuleGeo = new THREE.CapsuleGeometry(0.25, 0.8, 4, 8);
@@ -516,10 +1025,19 @@ export default {
           capsule.visible = false; // 第一人称隐藏自身模型
           scene.add(capsule);
           this.player = capsule;
+          smoothedCameraY = this.player.position.y + cameraEyeHeight;
 
           this.loading = false;
-          // 场景加载完成后加载老人模型
+          // 场景加载完成后加载引导箭头和老人模型
+          loadGuidance();
+          loadArrow2();
           loadOldman();
+          loadOldwomanPetting();
+          loadCat();
+          loadTea();
+          loadScreenWall();
+          loadCalligraphy();
+          loadAllArrows();
           // 进入游戏后随机 1～10 秒内开始播放，曲目从 playing 里随机选
           const delayMs = 1000 + Math.random() * 9000;
           this._musicDelayTimer = setTimeout(() => this.startBgm(), delayMs);
@@ -544,8 +1062,8 @@ export default {
         // 物理模拟
         this.world.step();
 
-        // 打开 ESC 面板时禁止 WASD 等移动操作
-        if (this.player && this.playerBody && !this.showSettings) {
+        // 打开 ESC 面板、坐在秋千上、临摹、茶道或tips显示时禁止 WASD 等移动操作
+        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInCalligraphy && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
           if (this.flyMode) {
             // 飞行模式：无碰撞，自由移动
             const flySpeed = 8;
@@ -574,18 +1092,24 @@ export default {
             }
 
             const curPos = this.playerBody.translation();
-            this.playerBody.setNextKinematicTranslation({
+            const nextPos = {
               x: curPos.x + finalDir.x * flySpeed * delta,
               y: curPos.y + verticalMove * flySpeed * delta,
               z: curPos.z + finalDir.z * flySpeed * delta
-            });
+            };
+            this.playerBody.setNextKinematicTranslation(nextPos);
 
-            const p = this.playerBody.translation();
-            this.player.position.set(p.x, p.y, p.z);
-            this.playerPos = { x: p.x, y: p.y, z: p.z };
+            // Keep render/camera body in sync with kinematic target.
+            this.player.position.set(nextPos.x, nextPos.y, nextPos.z);
+            this.playerPos = { x: nextPos.x, y: nextPos.y, z: nextPos.z };
           } else {
             // 正常行走模式
             const moveSpeed = 4;
+            const gravity = 18;
+            const maxFallSpeed = 8;
+            const groundStickVelocity = -0.08;
+            const idleGroundStickVelocity = -0.02;
+            const groundedGraceDuration = 0.12;
 
             const hAngle = this.cameraAngle.horizontal;
 
@@ -594,17 +1118,32 @@ export default {
             if (this.keys['s']) moveDir.z -= 1;
             if (this.keys['a']) moveDir.x += 1;
             if (this.keys['d']) moveDir.x -= 1;
+            const hasMoveInput = moveDir.lengthSq() > 0;
+
+            if (this.isGrounded) {
+              this.groundedGraceTime = groundedGraceDuration;
+            } else {
+              this.groundedGraceTime = Math.max(0, this.groundedGraceTime - delta);
+            }
 
             // 处理垂直逻辑（跳跃与重力）
             if (this.isGrounded && this.keys[' ']) {
               this.verticalVelocity = 6; // 跳跃初速度
               this.isGrounded = false;
+              this.groundedGraceTime = 0;
+            } else {
+              // Short ground-assist window avoids low-speed stair jitter on step edges.
+              const useGroundAssist = (this.isGrounded || (this.groundedGraceTime > 0 && hasMoveInput)) && this.verticalVelocity <= 0;
+              if (useGroundAssist) {
+                this.verticalVelocity = hasMoveInput ? groundStickVelocity : idleGroundStickVelocity;
+              } else {
+                this.verticalVelocity = Math.max(this.verticalVelocity - gravity * delta, -maxFallSpeed);
+              }
             }
 
-            this.verticalVelocity -= 18 * delta; // 重力加速度
             const movement = new THREE.Vector3(0, this.verticalVelocity * delta, 0);
 
-            if (moveDir.lengthSq() > 0) {
+            if (hasMoveInput) {
               moveDir.normalize();
 
               finalDir.set(
@@ -632,22 +1171,40 @@ export default {
 
             // 如果着地，重置垂直速度
             if (this.isGrounded && this.verticalVelocity < 0) {
-              this.verticalVelocity = -0.1; // 微小的向下压力保持贴地
+              this.verticalVelocity = hasMoveInput ? idleGroundStickVelocity : 0;
+              this.groundedGraceTime = groundedGraceDuration;
             }
 
             const curPos = this.playerBody.translation();
-            this.playerBody.setNextKinematicTranslation({
+            const nextPos = {
               x: curPos.x + correctedMovement.x,
               y: curPos.y + correctedMovement.y,
               z: curPos.z + correctedMovement.z
-            });
+            };
+            this.playerBody.setNextKinematicTranslation(nextPos);
 
-            // 同步 Three.js
-            const p = this.playerBody.translation();
-            this.player.position.set(p.x, p.y, p.z);
-            this.playerPos = { x: p.x, y: p.y, z: p.z };
+            // Sync render body to the kinematic target to remove one-frame jitter.
+            this.player.position.set(nextPos.x, nextPos.y, nextPos.z);
+            this.playerPos = { x: nextPos.x, y: nextPos.y, z: nextPos.z };
           }
         }
+
+        // 与老人距离检测（只算水平距离，更贴近日常感觉）
+        if (this.player && this.oldman) {
+          const px = this.player.position.x;
+          const pz = this.player.position.z;
+          const ox = this.oldman.position.x;
+          const oz = this.oldman.position.z;
+          const dx = px - ox;
+          const dz = pz - oz;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          this.isNearOldman = dist <= this.oldmanInteractDistance;
+        } else {
+          this.isNearOldman = false;
+        }
+
+        // 检查交互点（剧情系统）
+        this.checkInteractions();
 
         // 第一人称相机跟随与视角控制
         if (this.player && this.camera) {
@@ -656,8 +1213,15 @@ export default {
 
           // 相机置于胶囊体头部高度（视角调高）
           this.camera.position.x = this.player.position.x;
-          this.camera.position.y = this.player.position.y + 1.2;
           this.camera.position.z = this.player.position.z;
+          const targetCameraY = this.player.position.y + cameraEyeHeight;
+          if (smoothedCameraY === null || this.flyMode) {
+            smoothedCameraY = targetCameraY;
+          } else {
+            const smoothFactor = 1 - Math.exp(-stairCameraSmooth * delta);
+            smoothedCameraY += (targetCameraY - smoothedCameraY) * smoothFactor;
+          }
+          this.camera.position.y = smoothedCameraY;
 
           // 计算视向目标
           const target = new THREE.Vector3(
@@ -712,8 +1276,64 @@ export default {
           this.oldmanMixer.update(delta);
         }
 
+        // 更新老妇人模型动画
+        if (this.oldwomanPettingMixer) {
+          this.oldwomanPettingMixer.update(delta);
+        }
+
+        // 引导箭头上下浮动动画
+        if (this.guidance) {
+          this.guidanceTime = (this.guidanceTime || 0) + delta;
+          this.guidance.position.y = this.guidanceBaseY + Math.sin(this.guidanceTime * 2) * 0.5;
+          this.guidance.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 第二个箭头上下浮动动画
+        if (this.arrow2) {
+          this.arrow2Time = (this.arrow2Time || 0) + delta;
+          this.arrow2.position.y = this.arrow2BaseY + Math.sin(this.arrow2Time * 2) * 0.5;
+          this.arrow2.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 垂花门箭头上下浮动动画
+        if (this.chuihuaArrow) {
+          this.chuihuaArrowTime = (this.chuihuaArrowTime || 0) + delta;
+          this.chuihuaArrow.position.y = this.chuihuaArrowBaseY + Math.sin(this.chuihuaArrowTime * 2) * 0.5;
+          this.chuihuaArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 石榴树箭头上下浮动动画
+        if (this.pomegranateArrow) {
+          this.pomegranateArrowTime = (this.pomegranateArrowTime || 0) + delta;
+          this.pomegranateArrow.position.y = this.pomegranateArrowBaseY + Math.sin(this.pomegranateArrowTime * 2) * 0.5;
+          this.pomegranateArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 正房箭头上下浮动动画
+        if (this.mainhouseArrow) {
+          this.mainhouseArrowTime = (this.mainhouseArrowTime || 0) + delta;
+          this.mainhouseArrow.position.y = this.mainhouseArrowBaseY + Math.sin(this.mainhouseArrowTime * 2) * 0.5;
+          this.mainhouseArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 东厢房箭头上下浮动动画
+        if (this.eastwingArrow) {
+          this.eastwingArrowTime = (this.eastwingArrowTime || 0) + delta;
+          this.eastwingArrow.position.y = this.eastwingArrowBaseY + Math.sin(this.eastwingArrowTime * 2) * 0.5;
+          this.eastwingArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
+        // 西厢房箭头上下浮动动画
+        if (this.westwingArrow) {
+          this.westwingArrowTime = (this.westwingArrowTime || 0) + delta;
+          this.westwingArrow.position.y = this.westwingArrowBaseY + Math.sin(this.westwingArrowTime * 2) * 0.5;
+          this.westwingArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
         composer.render();
         stats.update();
+        // 更新FPS显示
+        this.currentFPS = Math.round(1 / delta);
       };
       animate();
 
@@ -738,14 +1358,36 @@ export default {
       window.addEventListener('resize', this.onResize);
 
       // 指针锁定逻辑
+      this.pointerLockJustActivated = false;
       this.requestLock = () => {
-        renderer.domElement.requestPointerLock();
+        // 只在未锁定时请求锁定，避免重复触发导致视角切换
+        if (document.pointerLockElement !== renderer.domElement) {
+          renderer.domElement.requestPointerLock();
+          // 标记刚刚激活指针锁定，用于跳过第一帧鼠标移动
+          this.pointerLockJustActivated = true;
+          // 100ms后解除标记
+          setTimeout(() => {
+            this.pointerLockJustActivated = false;
+          }, 100);
+        }
       };
       renderer.domElement.addEventListener('click', this.requestLock);
 
       document.addEventListener('pointerlockchange', () => {
+        // 对话、tips显示、茶道完成或收集界面打开时不自动打开ESC面板
+        if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection) {
+          this.showSettings = false;
+          return;
+        }
+        const wasLocked = this.showSettings === false && document.pointerLockElement !== null;
         this.showSettings = document.pointerLockElement === null;
-        if (this.showSettings) this.keys = {}; // 打开面板时清空按键，避免回到游戏时误触
+        if (this.showSettings) {
+          this.keys = {}; // 打开面板时清空按键，避免回到游戏时误触
+        } else if (wasLocked) {
+          // ESC面板关闭，重新获得指针锁定时，标记需要跳过第一帧
+          this.pointerLockJustActivated = true;
+          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        }
       });
     },
 
@@ -774,8 +1416,49 @@ export default {
 
     setupKeyboard() {
       this.onKeyDown = (e) => {
-        if (this.showSettings) return; // ESC 面板打开时不响应移动键
         const key = e.key.toLowerCase();
+
+        // L键打开/关闭收集界面
+        if (key === 'l') {
+          if (this.showCollection) {
+            // 如果已打开，则关闭
+            this.closeCollection();
+            return;
+          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+            // 如果未打开且满足条件，则打开
+            this.openCollection();
+            return;
+          }
+          return;
+        }
+
+        if (this.showSettings || this.showCollection) return; // ESC面板或收集界面时不响应移动键
+
+        // 交互键F
+        if (key === 'f') {
+          // 如果茶道游戏正在进行，处理茶道步骤
+          if (this.showTeaCeremony) {
+            this.handleTeaStep();
+            return;
+          }
+          // 如果多页tips正在显示，完全跳过处理（DialogueSystem在捕获阶段处理）
+          if (this.dialogueSystem && this.dialogueSystem.isTipsShowing() &&
+              this.dialogueSystem.tipsPages && this.dialogueSystem.tipsPages.length > 0) {
+            return;
+          }
+          // 如果单页tips正在显示，按F关闭
+          if (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) {
+            this.dialogueSystem.hideTips();
+            return;
+          }
+          // 如果正在对话中，不处理交互（让DialogueSystem处理F键）
+          if (this.isInDialogue) return;
+          this.handleInteract();
+          return;
+        }
+
+        // 如果在对话中，不处理其他按键（让DialogueSystem处理）
+        if (this.isInDialogue) return;
         if (key === 'g') {
           this.flyMode = !this.flyMode; // 切换飞行模式
           if (this.flyMode) {
@@ -786,7 +1469,7 @@ export default {
         this.keys[key] = true;
       };
       this.onKeyUp = (e) => {
-        if (this.showSettings) return;
+        if (this.showSettings || this.showCollection) return;
         this.keys[e.key.toLowerCase()] = false;
       };
       window.addEventListener('keydown', this.onKeyDown);
@@ -796,15 +1479,567 @@ export default {
       this.onMouseUp = () => { this.isDragging = false; };
       this.onMouseMove = (e) => {
         // 直接通过鼠标移动旋转视角，无需拖拽
+        // 对话、临摹、茶道、收集界面或tips显示时禁止视角控制
+        if (this.isInDialogue || this.isInCalligraphy || this.showTeaCeremony || this.showCollection || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
         if (document.pointerLockElement) {
+          // 跳过指针锁定刚激活时的第一帧移动，避免视角乱跳
+          if (this.pointerLockJustActivated) return;
           this.cameraAngle.horizontal -= e.movementX * 0.002;
-          this.cameraAngle.vertical -= e.movementY * 0.002; // 修复：修改为减号，解决上下视角反向问题
+          this.cameraAngle.vertical -= e.movementY * 0.002;
           this.cameraAngle.vertical = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.cameraAngle.vertical));
         }
       };
       window.addEventListener('mousedown', this.onMouseDown);
       window.addEventListener('mouseup', this.onMouseUp);
       window.addEventListener('mousemove', this.onMouseMove);
+    },
+
+    // 老人交互方法
+    handleOldmanInteract() {
+      if (this.isInDialogue) return;
+      
+      // 解锁收集物
+      this.unlockCollectionItem('oldman');
+      
+      // 判断是否已完成第一次完整对话
+      const hasCompletedFirstTalk = this.storyManager.getFlag('scene1_1_completed');
+      
+      if (!hasCompletedFirstTalk) {
+        // 第一次对话：完整剧情
+        const scene = this.storyManager.getCurrentScene();
+        if (scene && scene.dialogue) {
+          this.startDialogue(scene.dialogue, true);
+        }
+      } else {
+        // 第二次及以后：简短提示
+        const shortDialogue = getShortDialogue(this.locale);
+        this.startDialogue(shortDialogue, false);
+      }
+    },
+
+    // 初始化剧情系统
+    initStorySystem() {
+      // 创建剧情管理器
+      this.storyManager = new StoryManager();
+      this.loadStoryForCurrentLocale();
+
+      // 创建对话系统
+      this.dialogueSystem = new DialogueSystem(this.$refs.container, this.locale);
+
+      // 监听语言变化，重新加载剧情
+      i18n.onChange((locale) => {
+        this.locale = locale;
+        this.loadStoryForCurrentLocale();
+        // 更新对话系统的语言
+        if (this.dialogueSystem) {
+          this.dialogueSystem.setLocale(locale);
+        }
+      });
+
+      // 监听场景变化
+      this.storyManager.on('sceneStart', (scene) => {
+        console.log('场景开始:', scene.title);
+      });
+
+      // 不再自动触发剧情，改为靠近老爷爷时交互触发
+    },
+
+    // 初始化收集系统
+    initCollectionSystem() {
+      this.collectionSystem = new CollectionSystem();
+      this.loadCollectionForCurrentLocale();
+      this.collectionSystem.loadFromStorage();
+
+      // 监听语言变化
+      i18n.onChange((locale) => {
+        this.loadCollectionForCurrentLocale();
+      });
+
+      // 监听解锁事件，自动保存
+      this.collectionSystem.on('itemUnlocked', () => {
+        this.collectionSystem.saveToStorage();
+      });
+    },
+
+    // 加载当前语言的收集数据
+    loadCollectionForCurrentLocale() {
+      const data = getCollectionData(this.locale);
+      this.collectionSystem.loadCollectionData(data);
+    },
+
+    // 解锁收集物
+    unlockCollectionItem(interactionId) {
+      if (!this.collectionSystem) return;
+      const item = this.collectionSystem.getItemByInteractionId(interactionId);
+      if (item) {
+        this.collectionSystem.unlockItem(item.id);
+      }
+    },
+
+    // 打开收集界面
+    openCollection() {
+      if (this.collectionSystem) {
+        this.showCollection = true;
+        // 释放鼠标锁定
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
+      }
+    },
+
+    // 关闭收集界面
+    closeCollection() {
+      this.showCollection = false;
+    },
+
+    // 加载当前语言的剧情
+    loadStoryForCurrentLocale() {
+      const data = getStoryData(this.locale);
+      this.storyManager.loadStory(data);
+    },
+
+    // 开始对话
+    startDialogue(dialogueData, isFirstTalk = false) {
+      if (!dialogueData || dialogueData.length === 0) return;
+
+      this.isInDialogue = true;
+      // 清除对话冷却
+      this.dialogueCooldown = false;
+      // 保持指针锁定，不显示鼠标，使用键盘或自动推进对话
+
+      this.dialogueSystem.start(dialogueData, () => {
+        this.isInDialogue = false;
+        // 只有第一次完整对话才标记为完成
+        if (isFirstTalk) {
+          this.storyManager.setFlag('scene1_1_completed', true);
+        }
+        // 设置对话冷却，防止F键立即触发新对话
+        this.dialogueCooldown = true;
+        // 对话结束后跳过一帧鼠标移动，避免视角跳变
+        this.pointerLockJustActivated = true;
+        setTimeout(() => {
+          this.dialogueCooldown = false;
+          this.pointerLockJustActivated = false;
+        }, 200); // 200ms冷却时间
+      });
+    },
+
+    // 检查交互点
+    checkInteractions() {
+      if (!this.player || this.isInDialogue || this.showTeaCeremony) return;
+
+      const playerPos = this.player.position;
+      let nearestInteraction = null;
+      let nearestDistance = Infinity;
+
+      interactionPoints.forEach(point => {
+        // 跳过一次性的已交互目标
+        if (point.once && this.storyManager.getFlag(`interacted_${point.id}`)) return;
+        
+        const distance = playerPos.distanceTo(new THREE.Vector3(point.position.x, point.position.y, point.position.z));
+        if (distance < point.radius && distance < nearestDistance) {
+          // 检查条件
+          if (!point.condition || this.storyManager.checkCondition(point.condition)) {
+            nearestDistance = distance;
+            nearestInteraction = point;
+          }
+        }
+      });
+
+      this.currentInteraction = nearestInteraction;
+      this.isNearOldman = nearestInteraction && nearestInteraction.id === 'oldman';
+
+      // 更新当前位置
+      this.updateLocation();
+    },
+
+    // 更新玩家当前位置
+    updateLocation() {
+      if (!this.player) return;
+      const pos = this.player.position;
+      const x = pos.x;
+      const z = pos.z;
+
+      // 根据坐标判断位置（用户指定区域）
+      let locationImage = '';
+
+      // 大门区域
+      if (x >= -20 && x <= -14 && z >= -39 && z <= -23) {
+        locationImage = this.locale === 'en' ? '/photo/place/en/MainGate.png' : '/photo/place/zh/damen.png';
+      }
+      // 入院小径区域
+      else if (x >= -28 && x <= 43 && z >= -21 && z <= -9) {
+        locationImage = this.locale === 'en' ? '/photo/place/en/GardenPath.png' : '/photo/place/zh/ruyuanxiaojing.png';
+      }
+      // 内院区域
+      else if (x >= -19 && x <= 20 && z >= -5 && z <= 41) {
+        locationImage = this.locale === 'en' ? '/photo/place/en/InnerCourtyard.png' : '/photo/place/zh/neiyuan.png';
+      }
+
+      // 位置变化时触发渐出渐入效果
+      if (locationImage !== this.currentLocationImage) {
+        this.currentLocationImage = locationImage;
+        if (this.displayLocationImage === '') {
+          // 从无到有，直接显示
+          this.displayLocationImage = locationImage;
+          this.isLocationFadingOut = false;
+        } else if (locationImage === '') {
+          // 离开所有区域，渐出后清空
+          this.isLocationFadingOut = true;
+          setTimeout(() => {
+            this.displayLocationImage = '';
+            this.isLocationFadingOut = false;
+          }, 500);
+        } else {
+          // 从A到B，先渐出再渐入
+          this.isLocationFadingOut = true;
+          setTimeout(() => {
+            this.displayLocationImage = locationImage;
+            this.isLocationFadingOut = false;
+          }, 500);
+        }
+      }
+    },
+
+    // 处理交互按键
+    handleInteract() {
+      if (!this.currentInteraction || this.isInDialogue || this.dialogueCooldown) return;
+
+      if (this.currentInteraction.id === 'oldman') {
+        this.handleOldmanInteract();
+      } else if (this.currentInteraction.id === 'guidance') {
+        this.handleGuidanceInteract();
+      } else if (this.currentInteraction.id === 'arrow2') {
+        this.handleScreenWallInteract();
+      } else if (this.currentInteraction.id === 'chuihuamen') {
+        this.handleChuihuaInteract();
+      } else if (this.currentInteraction.id === 'swing') {
+        this.handleSwingInteract();
+      } else if (this.currentInteraction.id === 'pomegranate') {
+        this.handlePomegranateInteract();
+      } else if (this.currentInteraction.id === 'calligraphy') {
+        this.handleCalligraphyInteract();
+      } else if (this.currentInteraction.id === 'oldwoman') {
+        this.handleOldwomanInteract();
+      } else if (this.currentInteraction.id === 'cat') {
+        this.handleCatInteract();
+      } else if (this.currentInteraction.id === 'mainhouse') {
+        this.handleMainhouseInteract();
+      } else if (this.currentInteraction.id === 'eastwing') {
+        this.handleEastwingInteract();
+      } else if (this.currentInteraction.id === 'westwing') {
+        this.handleWestwingInteract();
+      } else if (this.currentInteraction.id === 'tea') {
+        this.handleTeaInteract();
+      }
+    },
+
+    // 处理箭头交互（按F切换tips显示/隐藏）
+    handleGuidanceInteract() {
+      // 如果tips已经在显示，按F会关闭它（在onKeyDown中处理）
+      // 如果tips没有显示，显示它
+      if (this.dialogueSystem.isTipsShowing()) {
+        return; // 已经在显示，不重复处理
+      }
+
+      // 解锁收集物
+      this.unlockCollectionItem('guidance');
+
+      // 显示tips提示框
+      const tipsText = getTipsText(this.locale, 'threshold');
+      this.dialogueSystem.showTips(tipsText, () => {
+        // tips关闭后跳过一帧鼠标移动，避免视角跳变
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理影壁交互（通过箭头触发）
+    handleScreenWallInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('arrow2');
+      const tipsText = getTipsText(this.locale, 'screenwall');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理垂花门交互（多页tips）
+    handleChuihuaInteract() {
+      if (this.dialogueSystem.isTipsShowing() || this.dialogueCooldown) return;
+      // 解锁收集物
+      this.unlockCollectionItem('chuihuamen');
+      const tipsPages = getTipsText(this.locale, 'chuihuamen');
+      this.dialogueSystem.showMultiPageTips(tipsPages, () => {
+        this.pointerLockJustActivated = true;
+        this.dialogueCooldown = true;
+        setTimeout(() => {
+          this.pointerLockJustActivated = false;
+          this.dialogueCooldown = false;
+        }, 500); // 500ms冷却，防止F键立即触发新交互
+      });
+    },
+
+    // 处理石榴树交互
+    handlePomegranateInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('pomegranate');
+      const tipsText = getTipsText(this.locale, 'pomegranate');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理纸墨笔砚交互
+    handleCalligraphyInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('calligraphy');
+      const tipsText = getTipsText(this.locale, 'calligraphy');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // 打开书法临摹界面
+        this.showCalligraphyPractice = true;
+      });
+    },
+
+    // 处理老奶奶交互（多轮对话）
+    handleOldwomanInteract() {
+      if (this.isInDialogue) return;
+      // 解锁收集物
+      this.unlockCollectionItem('oldwoman');
+      // 从storyData获取老奶奶对话
+      const storyData = getStoryData(this.locale);
+      const grandmaScene = storyData.chapters[1]?.scenes[0];
+      if (grandmaScene && grandmaScene.dialogue) {
+        this.startDialogue(grandmaScene.dialogue, false);
+      }
+    },
+
+    // 处理猫交互（普通tips）
+    handleCatInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('cat');
+      const tipsText = getTipsText(this.locale, 'cat');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理正房交互
+    handleMainhouseInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('mainhouse');
+      const tipsText = getTipsText(this.locale, 'mainhouse');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理东厢房交互
+    handleEastwingInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('eastwing');
+      const tipsText = getTipsText(this.locale, 'eastwing');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理西厢房交互
+    handleWestwingInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('westwing');
+      const tipsText = getTipsText(this.locale, 'westwing');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理茶道交互
+    handleTeaInteract() {
+      if (this.showTeaCeremony) return;
+      
+      // 解锁收集物
+      this.unlockCollectionItem('tea');
+      
+      // 检查是否已完成过茶道游戏
+      if (this.hasCompletedTeaCeremony) {
+        // 第二次及以后：显示茶文化介绍
+        this.showTeaCultureDialogue();
+        return;
+      }
+      
+      // 初始化茶道游戏（但不开始）
+      this.teaCeremonyGame = new TeaCeremonyGame();
+      this.teaCeremonyGame.onStepChange = (step) => {
+        this.teaCeremonyStep = step;
+      };
+      this.teaCeremonyGame.onComplete = (result) => {
+        this.teaCeremonyScore = result.score;
+        this.teaCeremonyRating = result.rating;
+        this.teaCeremonyComplete = true;
+        this.teaCeremonyStep = null; // 完成时步骤设为null，显示完成界面
+        // 标记已完成茶道游戏
+        this.hasCompletedTeaCeremony = true;
+        // 茶道完成时显示鼠标
+        document.exitPointerLock();
+      };
+      
+      this.showTeaCeremony = true;
+      this.teaCeremonyComplete = false;
+      this.teaCeremonyStep = null; // 初始为null，显示介绍页面
+      
+      // 交互后立即显示鼠标
+      document.exitPointerLock();
+    },
+
+    // 显示茶文化介绍tips
+    showTeaCultureDialogue() {
+      const tipsPages = getTipsText(this.locale, 'tea');
+      this.dialogueSystem.showMultiPageTips(tipsPages, () => {
+        this.pointerLockJustActivated = true;
+        this.dialogueCooldown = true;
+        setTimeout(() => {
+          this.pointerLockJustActivated = false;
+          this.dialogueCooldown = false;
+        }, 500);
+      });
+    },
+
+    // 茶道步骤处理
+    handleTeaStep() {
+      if (!this.showTeaCeremony || !this.teaCeremonyGame) return;
+      
+      // 获取当前指示器位置
+      const teaCeremonyComponent = this.$refs.teaCeremony;
+      const indicatorPosition = teaCeremonyComponent ? teaCeremonyComponent.getIndicatorPosition() : 0;
+      
+      // 根据指示器位置判断是否完美
+      const isPerfect = indicatorPosition >= 40 && indicatorPosition <= 60;
+      
+      const result = this.teaCeremonyGame.handleStep(isPerfect);
+      
+      // 重置指示器动画
+      if (!result.finished && teaCeremonyComponent) {
+        teaCeremonyComponent.resetIndicator();
+      }
+    },
+
+    // 茶道完成关闭
+    handleTeaCeremonyClose() {
+      this.showTeaCeremony = false;
+      // 重新锁定鼠标
+      this.requestLock();
+    },
+
+    // 茶道游戏开始
+    handleTeaStart() {
+      // 开始茶道游戏
+      this.teaCeremonyGame.start(this.locale);
+      this.teaCeremonyStep = this.teaCeremonyGame.getCurrentStep();
+      this.teaCeremonyScore = 0;
+      this.teaCeremonyComplete = false;
+    },
+
+    // 处理秋千交互
+    handleSwingInteract() {
+      // 解锁收集物
+      this.unlockCollectionItem('swing');
+      if (this.isOnSwing) {
+        // 下秋千
+        this.exitSwing();
+      } else {
+        // 上秋千
+        this.enterSwing();
+      }
+    },
+
+    // 上秋千
+    enterSwing() {
+      // 保存当前位置
+      this.swingReturnPosition = {
+        x: this.player.position.x,
+        y: this.player.position.y,
+        z: this.player.position.z
+      };
+      // 移动到秋千位置
+      this.player.position.set(this.swingPosition.x, this.swingPosition.y, this.swingPosition.z);
+      this.playerBody.setTranslation({
+        x: this.swingPosition.x,
+        y: this.swingPosition.y,
+        z: this.swingPosition.z
+      });
+      this.isOnSwing = true;
+    },
+
+    // 下秋千
+    exitSwing() {
+      if (this.swingReturnPosition) {
+        // 回到原来的位置
+        this.player.position.set(
+          this.swingReturnPosition.x,
+          this.swingReturnPosition.y,
+          this.swingReturnPosition.z
+        );
+        this.playerBody.setTranslation({
+          x: this.swingReturnPosition.x,
+          y: this.swingReturnPosition.y,
+          z: this.swingReturnPosition.z
+        });
+      }
+      this.isOnSwing = false;
+      this.swingReturnPosition = null;
+    },
+
+    // 初始化国际化
+    initI18n() {
+      i18n.onChange((locale) => {
+        this.locale = locale;
+      });
+    },
+
+    // 设置语言
+    setLocale(locale) {
+      i18n.setLocale(locale);
+      this.locale = locale;
+    },
+
+    // 开始随机切换加载提示语
+    startLoadingHints() {
+      // 每3秒随机切换一次提示语
+      setInterval(() => {
+        if (this.loading) {
+          this.currentLoadingHintIndex = Math.floor(Math.random() * 4);
+        }
+      }, 3000);
+    },
+
+    // 获取交互显示名称（秋千特殊处理）
+    getInteractionDisplayName() {
+      if (!this.currentInteraction) return '';
+      // 如果在秋千上，显示"下秋千"
+      if (this.currentInteraction.id === 'swing' && this.isOnSwing) {
+        return this.locale === 'zh' ? '下秋千' : 'Leave Swing';
+      }
+      // 默认显示交互点名称
+      if (this.locale === 'en' && this.currentInteraction.nameEn) {
+        return this.currentInteraction.nameEn;
+      }
+      return this.currentInteraction.name;
     }
   }
 };
@@ -824,36 +2059,55 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: #1a1a1a;
+  background: rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(10px);
 }
 
 .loading-content {
   text-align: center;
+  background: white;
+  padding: 40px 60px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
 }
 
 .progress-bar {
   width: 300px;
-  height: 6px;
-  background: #333;
-  border-radius: 3px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin: 0 auto;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #4a9eff, #67b5ff);
+  border-radius: 4px;
   transition: width 0.3s ease;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+}
+
+.loading-hint {
+  color: #666;
+  font-size: 16px;
+  font-weight: 400;
+  margin-bottom: 25px;
+  min-height: 24px;
+  transition: opacity 0.3s ease;
 }
 
 .loading-text {
-  color: #fff;
+  color: #333;
   font-size: 18px;
   font-weight: 500;
+  margin-top: 15px;
 }
 
 .player-info {
@@ -881,32 +2135,74 @@ export default {
   z-index: 100;
 }
 
+.location-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 180px;
+  height: 75px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  animation: locationFadeIn 0.5s ease forwards;
+}
+
+@keyframes locationFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.location-hint.fade-out {
+  animation: locationFadeOut 0.5s ease forwards;
+}
+
+@keyframes locationFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
 .settings-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
+  backdrop-filter: blur(15px);
 }
 
 .settings-panel {
-  background: rgba(30, 30, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 24px 32px;
-  min-width: 320px;
-  backdrop-filter: blur(12px);
+  background: white;
+  border: none;
+  border-radius: 20px;
+  padding: 32px 40px;
+  min-width: 360px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
 }
 
 .settings-title {
-  margin: 0 0 16px 0;
-  color: #fff;
-  font-size: 22px;
+  margin: 0 0 24px 0;
+  color: #333;
+  font-size: 24px;
   font-weight: 600;
   text-align: center;
 }
@@ -916,10 +2212,12 @@ export default {
 }
 
 .settings-section-title {
-  margin: 0 0 12px 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 15px;
+  margin: 0 0 16px 0;
+  color: #555;
+  font-size: 16px;
   font-weight: 600;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 8px;
 }
 
 .settings-group {
@@ -946,9 +2244,10 @@ export default {
 
 .settings-group label {
   display: block;
-  color: rgba(255, 255, 255, 0.9);
+  color: #666;
   font-size: 14px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .settings-group input[type="range"] {
@@ -961,18 +2260,169 @@ export default {
 .settings-btn {
   display: block;
   width: 100%;
-  margin-top: 20px;
-  padding: 12px 40px;
-  background: rgba(90, 158, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-top: 24px;
+  padding: 14px 40px;
+  background: #4a9eff;
+  border: none;
   color: white;
   font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
 }
 
 .settings-btn:hover {
-  background: rgba(90, 158, 255, 0.5);
+  background: #3a8eed;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+}
+
+.lang-switch {
+  gap: 12px;
+}
+
+.lang-btn {
+  flex: 1;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.lang-btn.active {
+  background: #4a9eff;
+  border-color: #4a9eff;
+  color: white;
+}
+
+.lang-btn:hover {
+  border-color: #4a9eff;
+}
+
+/* 设置菜单样式 */
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #444;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.menu-btn:hover {
+  background: rgba(74, 158, 255, 0.08);
+  border-color: #4a9eff;
+  color: #4a9eff;
+  transform: translateX(4px);
+}
+
+.menu-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+}
+
+/* 设置详情页样式 */
+.settings-detail {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.back-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 30px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid #ddd;
+  color: #666;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: #999;
+  color: #444;
+}
+
+/* 交互提示框过渡动画 */
+.hint-enter-active,
+.hint-leave-active {
+  transition: all 0.3s ease;
+}
+
+.hint-enter-from,
+.hint-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
+
+.hint-enter-to,
+.hint-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.interaction-hint {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 150;
+}
+
+.interaction-bg {
+  width: 200px;
+  height: 60px;
+  background-image: url('/photo/interaction.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interaction-text {
+  color: #FDF8E4;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  padding-left: 20px;
+  padding-bottom: 5px;
 }
 </style>
