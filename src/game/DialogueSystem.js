@@ -173,17 +173,18 @@ export class DialogueSystem {
         tipsTextArea.className = 'tips-text-area';
         tipsTextArea.style.cssText = `
             position: absolute;
-            left: 30px;
+            left: 32px;
             top: 130px;
             width: 570px;
             height: 250px;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             font-size: 20px;
             color: #3a2c1a;
             line-height: 1.8;
             padding: 20px;
             box-sizing: border-box;
+            text-align: left;
         `;
         tipsBox.appendChild(tipsTextArea);
 
@@ -247,6 +248,9 @@ export class DialogueSystem {
         this.currentIndex = 0;
         this.onComplete = onComplete;
         this.isActive = true;
+        this.isTyping = false; // 是否正在打字
+        this.typeSpeed = 50; // 打字速度（毫秒/字）
+        this.typeTimer = null; // 打字定时器
         this.elements.box.style.display = 'block';
         this.elements.box.classList.add('show');
 
@@ -263,7 +267,12 @@ export class DialogueSystem {
         if (!this.isActive) return;
         if (e.key.toLowerCase() === 'f') {
             e.preventDefault();
-            this.nextLine();
+            // 如果正在打字，按F跳过打字直接显示完整文本
+            if (this.isTyping) {
+                this.skipTyping();
+            } else {
+                this.nextLine();
+            }
         }
     }
 
@@ -275,8 +284,54 @@ export class DialogueSystem {
 
         const line = this.currentDialogue[this.currentIndex];
         this.elements.speaker.textContent = line.speaker || '';
-        this.elements.text.textContent = line.text || '';
         this.updateAvatar(line.speaker);
+
+        // 开始打字机效果
+        this.startTyping(line.text || '');
+    }
+
+    // 开始打字效果
+    startTyping(fullText) {
+        this.isTyping = true;
+        this.fullText = fullText;
+        this.currentText = '';
+        this.charIndex = 0;
+
+        // 隐藏继续提示
+        this.elements.continueHint.style.opacity = '0.3';
+
+        // 清除之前的定时器
+        if (this.typeTimer) {
+            clearInterval(this.typeTimer);
+        }
+
+        // 开始逐字显示
+        this.typeTimer = setInterval(() => {
+            if (this.charIndex < this.fullText.length) {
+                this.currentText += this.fullText[this.charIndex];
+                this.elements.text.textContent = this.currentText;
+                this.charIndex++;
+            } else {
+                // 打字完成
+                this.finishTyping();
+            }
+        }, this.typeSpeed);
+    }
+
+    // 跳过打字，直接显示完整文本
+    skipTyping() {
+        if (this.typeTimer) {
+            clearInterval(this.typeTimer);
+            this.typeTimer = null;
+        }
+        this.elements.text.textContent = this.fullText;
+        this.finishTyping();
+    }
+
+    // 打字完成
+    finishTyping() {
+        this.isTyping = false;
+        this.elements.continueHint.style.opacity = '1';
     }
 
     nextLine() {
@@ -286,7 +341,14 @@ export class DialogueSystem {
     }
 
     end() {
+        // 清除打字定时器
+        if (this.typeTimer) {
+            clearInterval(this.typeTimer);
+            this.typeTimer = null;
+        }
+
         this.isActive = false;
+        this.isTyping = false;
         this.elements.box.style.display = 'none';
         this.elements.box.classList.remove('show');
 
@@ -305,12 +367,22 @@ export class DialogueSystem {
     // Tips相关状态
     isTipsActive = false;
     tipsOnComplete = null;
+    isTipsTyping = false;
+    tipsTypeTimer = null;
+    tipsTypeSpeed = 30; // tips打字速度稍快
 
     // Tips的F键处理函数（绑定this）
     onTipsKeyDown = (e) => {
         if (e.key.toLowerCase() === 'f') {
             e.preventDefault();
-            this.toggleTips();
+            e.stopPropagation();
+            // 如果正在打字，跳过打字显示全部文字
+            if (this.isTipsTyping) {
+                this.skipTipsTyping();
+            } else {
+                // 文字已显示完整，按F关闭tips
+                this.hideTips();
+            }
         }
     }
 
@@ -324,7 +396,17 @@ export class DialogueSystem {
 
     // 隐藏tips
     hideTips() {
+        // 清除打字定时器
+        if (this.tipsTypeTimer) {
+            clearInterval(this.tipsTypeTimer);
+            this.tipsTypeTimer = null;
+        }
+
+        // 移除F键监听
+        document.removeEventListener('keydown', this.onTipsKeyDown);
+
         this.isTipsActive = false;
+        this.isTipsTyping = false;
         this.elements.tipsBox.style.display = 'none';
         this.elements.tipsBox.style.animation = '';
 
@@ -338,17 +420,56 @@ export class DialogueSystem {
 
     // 显示tips提示框（按F弹出，再按F关闭）
     showTips(text, onComplete) {
-        // 如果tips已经在显示，先关闭它
-        if (this.isTipsActive) {
-            this.hideTips();
-            return;
-        }
-
         this.tipsOnComplete = onComplete;
-        this.elements.tipsText.textContent = text;
         this.elements.tipsBox.style.display = 'block';
         this.elements.tipsBox.style.animation = 'slideUp 0.3s ease';
         this.isTipsActive = true;
+
+        // 绑定F键监听
+        document.addEventListener('keydown', this.onTipsKeyDown);
+
+        // 开始打字效果
+        this.startTipsTyping(text);
+    }
+
+    // 开始tips打字效果
+    startTipsTyping(fullText) {
+        this.isTipsTyping = true;
+        this.tipsFullText = fullText;
+        this.tipsCurrentText = '';
+        this.tipsCharIndex = 0;
+
+        // 清除之前的定时器
+        if (this.tipsTypeTimer) {
+            clearInterval(this.tipsTypeTimer);
+        }
+
+        // 开始逐字显示
+        this.tipsTypeTimer = setInterval(() => {
+            if (this.tipsCharIndex < this.tipsFullText.length) {
+                this.tipsCurrentText += this.tipsFullText[this.tipsCharIndex];
+                this.elements.tipsText.textContent = this.tipsCurrentText;
+                this.tipsCharIndex++;
+            } else {
+                // 打字完成
+                this.finishTipsTyping();
+            }
+        }, this.tipsTypeSpeed);
+    }
+
+    // 跳过tips打字
+    skipTipsTyping() {
+        if (this.tipsTypeTimer) {
+            clearInterval(this.tipsTypeTimer);
+            this.tipsTypeTimer = null;
+        }
+        this.elements.tipsText.textContent = this.tipsFullText;
+        this.finishTipsTyping();
+    }
+
+    // tips打字完成
+    finishTipsTyping() {
+        this.isTipsTyping = false;
     }
 
     // 显示多页tips（类似对话框，按F翻页）

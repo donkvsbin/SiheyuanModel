@@ -129,6 +129,7 @@
         </div>
 
         <button v-if="!settingsCategory" class="settings-btn" @click="requestLock">{{ t('backToGame') }}</button>
+        <button v-if="!settingsCategory" class="settings-btn save-exit-btn" @click="saveAndExit">{{ t('saveAndExit') }}</button>
       </div>
     </div>
 
@@ -156,42 +157,70 @@
       :locale="locale"
       @close="closeCollection"
     />
+
+    <!-- 剧情介绍 -->
+    <StoryIntro
+      v-if="showIntro && !loading && !introCompleted"
+      @complete="introCompleted = true"
+    />
+    
+    <!-- 任务面板 -->
+    <QuestPanel
+      v-if="questManager && introCompleted"
+      :quest-manager="questManager"
+    />
   </div>
 </template>
 
 <script>
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 
 import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { GTAOManager, GTAOPresets } from '../utils/GTAOManager.js';
-import { VolumetricLightPass } from '../utils/VolumetricLightPass.js';
-import { ColorGradingPass, ColorGradingPresets } from '../utils/ColorGradingPass.js';
-import { VignettePass } from '../utils/VignettePass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {GTAOManager, GTAOPresets} from '../utils/GTAOManager.js';
+import {VolumetricLightPass} from '../utils/VolumetricLightPass.js';
+import {ColorGradingPass, ColorGradingPresets} from '../utils/ColorGradingPass.js';
+import {VignettePass} from '../utils/VignettePass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { StoryManager } from '../game/StoryManager.js';
-import { DialogueSystem } from '../game/DialogueSystem.js';
-import { CollectionSystem } from '../game/CollectionSystem.js';
-import { getStoryData, interactionPoints, getShortDialogue, getTipsText, getCollectionData } from '../data/storyData.js';
-import { i18n } from '../utils/i18n.js';
+import {StoryManager} from '../game/StoryManager.js';
+import {DialogueSystem} from '../game/DialogueSystem.js';
+import {CollectionSystem} from '../game/CollectionSystem.js';
+import {getChuihuaDialogue, getCollectionData, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
+import {i18n} from '../utils/i18n.js';
 import CalligraphyPractice from './CalligraphyPractice.vue';
 import TeaCeremony from './TeaCeremony.vue';
 import CollectionView from './CollectionView.vue';
-import { TeaCeremony as TeaCeremonyGame } from '../game/TeaCeremony.js';
+import StoryIntro from './StoryIntro.vue';
+import {TeaCeremony as TeaCeremonyGame} from '../game/TeaCeremony.js';
+import {saveManager} from '../game/SaveManager.js';
+import {QuestManager} from '../game/QuestManager.js';
+import QuestPanel from './QuestPanel.vue';
 
 export default {
   components: {
     CalligraphyPractice,
     TeaCeremony,
-    CollectionView
+    CollectionView,
+    StoryIntro,
+    QuestPanel
+  },
+  props: {
+    isNewGame: {
+      type: Boolean,
+      default: true
+    },
+    showIntro: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
@@ -279,7 +308,13 @@ export default {
       hasCompletedTeaCeremony: false,
       // 收集系统
       collectionSystem: null,
-      showCollection: false
+      showCollection: false,
+      // 剧情介绍
+      introCompleted: false,
+      // 跳跃状态
+      jumpPressed: false,
+      // 任务系统
+      questManager: null
     };
   },
   computed: {
@@ -349,6 +384,7 @@ export default {
       this.startLoadingHints();
       this.initStorySystem();
       this.initCollectionSystem();
+      this.initQuestSystem();
       this.initI18n();
     });
   },
@@ -371,6 +407,65 @@ export default {
     if (this.vignettePass) this.vignettePass.dispose();
   },
   methods: {
+    // 保存并退出游戏
+    saveAndExit() {
+      const storyFlags = this.storyManager && this.storyManager.flags instanceof Map
+        ? Object.fromEntries(this.storyManager.flags)
+        : {};
+      const saveData = {
+        playerPosition: this.player ? {
+          x: this.player.position.x,
+          y: this.player.position.y,
+          z: this.player.position.z
+        } : null,
+        unlockedItems: this.collectionSystem ? this.collectionSystem.unlockedItems : [],
+        storyFlags: storyFlags,
+        grandpaMemory: this.grandpaMemory || 0,
+        locale: this.locale,
+        questState: this.questManager ? this.questManager.saveState() : null
+      };
+      saveManager.save(saveData);
+      this.$emit('exit');
+    },
+    // 加载游戏存档
+    loadGame() {
+      const saveData = saveManager.load();
+      if (!saveData) return false;
+      
+      // 恢复玩家位置
+      if (saveData.playerPosition && this.player && this.playerBody) {
+        this.player.position.set(
+          saveData.playerPosition.x,
+          saveData.playerPosition.y,
+          saveData.playerPosition.z
+        );
+        this.playerBody.setTranslation({
+          x: saveData.playerPosition.x,
+          y: saveData.playerPosition.y,
+          z: saveData.playerPosition.z
+        }, true);
+      }
+      
+      // 恢复收集物品
+      if (saveData.unlockedItems && this.collectionSystem) {
+        this.collectionSystem.unlockedItems = saveData.unlockedItems;
+      }
+      
+      // 恢复剧情进度
+      if (saveData.storyFlags && this.storyManager) {
+        this.storyManager.flags = new Map(Object.entries(saveData.storyFlags));
+      }
+
+      // 恢复记忆进度
+      this.grandpaMemory = saveData.grandpaMemory || 0;
+      
+      // 恢复任务状态
+      if (saveData.questState && this.questManager) {
+        this.questManager.loadState(saveData.questState);
+      }
+      
+      return true;
+    },
     async initRapier() {
       await RAPIER.init();
       this.world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
@@ -388,15 +483,16 @@ export default {
         '/Sky/chenwu_textures/py.jpg', '/Sky/chenwu_textures/ny.jpg',
         '/Sky/chenwu_textures/pz.jpg', '/Sky/chenwu_textures/nz.jpg'
       ];
-      const skyCube = cubeLoader.load(
-        skyUrls,
-        (tex) => {
-          if (this.scene) this.scene.background = tex;
-        },
-        undefined,
-        (err) => { console.error('天空盒加载失败', err); }
+      scene.background = cubeLoader.load(
+          skyUrls,
+          (tex) => {
+            if (this.scene) this.scene.background = tex;
+          },
+          undefined,
+          (err) => {
+            console.error('天空盒加载失败', err);
+          }
       );
-      scene.background = skyCube;
 
       // 添加距离雾（轻微雾蒙蒙效果）
       scene.fog = new THREE.Fog(0xd0dce6, 40, 220);
@@ -642,6 +738,35 @@ export default {
         );
       };
 
+      // 加载王氏家谱模型
+      const loadFamilyBook = () => {
+        const bookLoader = new GLTFLoader();
+        bookLoader.setDRACOLoader(dracoLoader);
+        bookLoader.load(
+          '/models/Book.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-1, 15.5, 20);
+            model.scale.setScalar(1);
+            model.rotation.x = Math.PI / 2;
+            //model.rotation.y = Math.PI / 2;\
+            model.rotation.z = -Math.PI / 2;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            scene.add(model);
+            this.familyBook = model;
+          },
+          undefined,
+          (err) => {
+            console.error('家谱模型加载失败:', err);
+          }
+        );
+      };
+
       // 加载所有箭头模型（复用同一个素材）
       const loadAllArrows = () => {
         const arrowLoader = new GLTFLoader();
@@ -688,6 +813,12 @@ export default {
             this.pomegranateArrow = pomegranate.model;
             this.pomegranateArrowBaseY = pomegranate.baseY;
             this.pomegranateArrowTime = pomegranate.time;
+
+            // 海棠树箭头
+            const taohe = createArrow({ x: 7, y: 15, z: 5 }, 15.5, 'taohe');
+            this.taoheArrow = taohe.model;
+            this.taoheArrowBaseY = taohe.baseY;
+            this.taoheArrowTime = taohe.time;
           },
           undefined,
           (err) => {
@@ -740,9 +871,16 @@ export default {
             scene.add(model);
             this.oldman = model;
 
+            // 根据剧情状态设置王爷爷位置
+            this.updateGrandpaPosition();
+
             // 创建老爷爷碰撞体（圆柱体包围盒）
+            const grandpaLocation = this.storyManager.getGrandpaLocation();
+            const colliderPos = grandpaLocation === 'chuihuamen'
+              ? { x: 1, y: 15 + 1.5, z: -10 }
+              : { x: -2, y: 14.5 + 1.5, z: -36 };
             const oldmanColliderDesc = RAPIER.ColliderDesc.cylinder(1.5, 0.8)
-              .setTranslation(-2, 14.5 + 1.5, -36)
+              .setTranslation(colliderPos.x, colliderPos.y, colliderPos.z)
               .setFriction(0)
               .setRestitution(0);
             this.world.createCollider(oldmanColliderDesc);
@@ -1037,7 +1175,37 @@ export default {
           loadTea();
           loadScreenWall();
           loadCalligraphy();
+          loadFamilyBook();
           loadAllArrows();
+          
+          // 如果不是新游戏，恢复玩家位置、剧情进度并跳过剧情介绍
+          if (!this.isNewGame) {
+            this.introCompleted = true;
+            // 恢复玩家位置（在模型加载完成后）
+            const saveData = saveManager.load();
+            if (saveData) {
+              // 恢复玩家位置
+              if (saveData.playerPosition) {
+                this.player.position.set(
+                  saveData.playerPosition.x,
+                  saveData.playerPosition.y,
+                  saveData.playerPosition.z
+                );
+                this.playerBody.setTranslation({
+                  x: saveData.playerPosition.x,
+                  y: saveData.playerPosition.y,
+                  z: saveData.playerPosition.z
+                }, true);
+                this.playerPos = { ...saveData.playerPosition };
+              }
+              // 恢复剧情进度（storyFlags）
+              if (saveData.storyFlags) {
+                this.storyManager.loadFlags(saveData.storyFlags);
+              }
+              // 注意：王爷爷位置在模型加载完成后再恢复
+            }
+          }
+
           // 进入游戏后随机 1～10 秒内开始播放，曲目从 playing 里随机选
           const delayMs = 1000 + Math.random() * 9000;
           this._musicDelayTimer = setTimeout(() => this.startBgm(), delayMs);
@@ -1127,10 +1295,12 @@ export default {
             }
 
             // 处理垂直逻辑（跳跃与重力）
-            if (this.isGrounded && this.keys[' ']) {
+            // 使用 groundedGraceTime 作为跳跃缓冲期，即使 isGrounded 为 false 也能跳跃
+            if ((this.isGrounded || this.groundedGraceTime > 0) && this.keys[' '] && !this.jumpPressed) {
               this.verticalVelocity = 6; // 跳跃初速度
               this.isGrounded = false;
               this.groundedGraceTime = 0;
+              this.jumpPressed = true; // 标记已跳跃，防止按住连续跳
             } else {
               // Short ground-assist window avoids low-speed stair jitter on step edges.
               const useGroundAssist = (this.isGrounded || (this.groundedGraceTime > 0 && hasMoveInput)) && this.verticalVelocity <= 0;
@@ -1155,9 +1325,30 @@ export default {
               movement.x = finalDir.x * moveSpeed * delta;
               movement.z = finalDir.z * moveSpeed * delta;
 
-              // 转向
-              const lookTarget = new THREE.Vector3().copy(this.player.position).add(finalDir);
-              this.player.lookAt(lookTarget);
+              // 转向（只在方向有效时）
+              if (finalDir.lengthSq() > 0.001) {
+                const lookTarget = new THREE.Vector3().copy(this.player.position).add(finalDir);
+                this.player.lookAt(lookTarget);
+              }
+            }
+
+            // 上楼梯优化：检测前方是否有台阶，给一点向上的助推
+            if (hasMoveInput && this.isGrounded) {
+              const rayOrigin = this.playerBody.translation();
+              const rayDir = new THREE.Vector3(finalDir.x, 0, finalDir.z).normalize();
+              // 从脚部稍低位置发射射线，更容易检测到台阶
+              const ray = new RAPIER.Ray({ x: rayOrigin.x, y: rayOrigin.y - 0.3, z: rayOrigin.z }, { x: rayDir.x, y: 0, z: rayDir.z });
+              const hit = this.world.castRay(ray, 0.6, true);
+              if (hit && hit.timeOfImpact < 0.5) {
+                // 前方有障碍，可能是台阶，给一点向上推力（使用插值平滑）
+                const targetBoost = 0.2;
+                this.stairBoost = (this.stairBoost || 0) * 0.7 + targetBoost * 0.3;
+                movement.y += this.stairBoost;
+              } else {
+                this.stairBoost = (this.stairBoost || 0) * 0.5;
+              }
+            } else {
+              this.stairBoost = 0;
             }
 
             // 计算并移动
@@ -1330,6 +1521,13 @@ export default {
           this.westwingArrow.rotation.y += delta * 0.5; // Y轴旋转
         }
 
+        // 海棠树箭头上下浮动动画
+        if (this.taoheArrow) {
+          this.taoheArrowTime = (this.taoheArrowTime || 0) + delta;
+          this.taoheArrow.position.y = this.taoheArrowBaseY + Math.sin(this.taoheArrowTime * 2) * 0.5;
+          this.taoheArrow.rotation.y += delta * 0.5; // Y轴旋转
+        }
+
         composer.render();
         stats.update();
         // 更新FPS显示
@@ -1446,9 +1644,9 @@ export default {
               this.dialogueSystem.tipsPages && this.dialogueSystem.tipsPages.length > 0) {
             return;
           }
-          // 如果单页tips正在显示，按F关闭
+          // 如果单页tips正在显示，按F处理（打字中显示全部，打字完成关闭）
           if (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) {
-            this.dialogueSystem.hideTips();
+            // 让 DialogueSystem 自己处理 F 键逻辑
             return;
           }
           // 如果正在对话中，不处理交互（让DialogueSystem处理F键）
@@ -1470,7 +1668,12 @@ export default {
       };
       this.onKeyUp = (e) => {
         if (this.showSettings || this.showCollection) return;
-        this.keys[e.key.toLowerCase()] = false;
+        const key = e.key.toLowerCase();
+        this.keys[key] = false;
+        // 空格键释放时重置跳跃状态
+        if (key === ' ') {
+          this.jumpPressed = false;
+        }
       };
       window.addEventListener('keydown', this.onKeyDown);
       window.addEventListener('keyup', this.onKeyUp);
@@ -1497,13 +1700,38 @@ export default {
     // 老人交互方法
     handleOldmanInteract() {
       if (this.isInDialogue) return;
-      
+
       // 解锁收集物
       this.unlockCollectionItem('oldman');
-      
-      // 判断是否已完成第一次完整对话
+
+      // 检查王爷爷当前位置
+      const grandpaLocation = this.storyManager.getGrandpaLocation();
+
+      if (grandpaLocation === 'chuihuamen') {
+        // 王爷爷在垂花门：使用垂花门对话
+        const chuihuaDialogue = getChuihuaDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(chuihuaDialogue, () => {
+          this.isInDialogue = false;
+          // 完成"与王爷爷交流"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_meet_grandpa_chuihua') {
+            this.questManager.completeCurrentQuest();
+          }
+          // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        });
+        return;
+      }
+
+      // 王爷爷在大门：原有逻辑
       const hasCompletedFirstTalk = this.storyManager.getFlag('scene1_1_completed');
-      
+
       if (!hasCompletedFirstTalk) {
         // 第一次对话：完整剧情
         const scene = this.storyManager.getCurrentScene();
@@ -1542,6 +1770,33 @@ export default {
       });
 
       // 不再自动触发剧情，改为靠近老爷爷时交互触发
+    },
+
+    // 初始化任务系统
+    initQuestSystem() {
+      this.questManager = new QuestManager();
+
+      // 先加载任务数据定义
+      const quests = getQuestData(this.locale);
+      this.questManager.loadQuests(quests);
+
+      // 检查是否有存档，继续游戏时恢复任务进度
+      const saveData = saveManager.load();
+      if (saveData && !this.isNewGame && saveData.questState) {
+        // 加载状态（这会覆盖 currentQuestIndex 和 completedQuests）
+        this.questManager.loadState(saveData.questState);
+      }
+
+      // 监听语言变化
+      i18n.onChange((locale) => {
+        // 保存当前任务状态
+        const currentState = this.questManager.saveState();
+        // 加载新语言的任务数据
+        const newQuests = getQuestData(locale);
+        this.questManager.loadQuests(newQuests);
+        // 恢复任务状态（保持当前任务索引和已完成列表）
+        this.questManager.loadState(currentState);
+      });
     },
 
     // 初始化收集系统
@@ -1612,6 +1867,11 @@ export default {
         // 只有第一次完整对话才标记为完成
         if (isFirstTalk) {
           this.storyManager.setFlag('scene1_1_completed', true);
+          // 完成"和王爷爷说话"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_talk_to_grandpa') {
+            this.questManager.completeCurrentQuest();
+          }
         }
         // 设置对话冷却，防止F键立即触发新对话
         this.dialogueCooldown = true;
@@ -1664,7 +1924,7 @@ export default {
       let locationImage = '';
 
       // 大门区域
-      if (x >= -20 && x <= -14 && z >= -39 && z <= -23) {
+      if (x >= -27 && x <= -14 && z >= -38 && z <= -22) {
         locationImage = this.locale === 'en' ? '/photo/place/en/MainGate.png' : '/photo/place/zh/damen.png';
       }
       // 入院小径区域
@@ -1731,6 +1991,10 @@ export default {
         this.handleWestwingInteract();
       } else if (this.currentInteraction.id === 'tea') {
         this.handleTeaInteract();
+      } else if (this.currentInteraction.id === 'familybook') {
+        this.handleFamilyBookInteract();
+      } else if (this.currentInteraction.id === 'taohe') {
+        this.handleTaoheInteract();
       }
     },
 
@@ -1742,6 +2006,20 @@ export default {
         return; // 已经在显示，不重复处理
       }
 
+      // 检查是否已完成与王爷爷的第一次对话
+      const hasCompletedFirstTalk = this.storyManager.getFlag('scene1_1_completed');
+      if (!hasCompletedFirstTalk) {
+        // 未完成对话，显示提示需要先和王爷爷对话
+        const tipsText = this.locale === 'en' 
+          ? "You should talk to Grandpa Wang first before entering the courtyard."
+          : "你应该先和王爷爷打个招呼再进院子。";
+        this.dialogueSystem.showTips(tipsText, () => {
+          this.pointerLockJustActivated = true;
+          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        });
+        return;
+      }
+
       // 解锁收集物
       this.unlockCollectionItem('guidance');
 
@@ -1751,7 +2029,66 @@ export default {
         // tips关闭后跳过一帧鼠标移动，避免视角跳变
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // 标记门槛已交互，触发王爷爷位置变化
+        this.storyManager.setFlag('threshold_interacted', true);
+        this.updateGrandpaPosition();
+        // 完成"探索门槛"任务，推进到"进入大门"
+        const currentQuest = this.questManager.getCurrentQuest();
+        if (currentQuest && currentQuest.id === 'quest_explore_threshold') {
+          this.questManager.completeCurrentQuest();
+        }
       });
+    },
+
+    // 更新王爷爷位置和交互点
+    updateGrandpaPosition() {
+      const location = this.storyManager.getGrandpaLocation();
+
+      if (location === 'chuihuamen') {
+        // 王爷爷移动到垂花门
+        if (this.oldman) {
+          this.oldman.position.set(6, 14.5, -11);
+          this.oldman.rotation.y = Math.PI / 2 + Math.PI + Math.PI / 6; // 向左旋转45度
+        }
+        // 更新交互点位置到垂花门
+        const oldmanPoint = interactionPoints.find(p => p.id === 'oldman');
+        if (oldmanPoint) {
+          oldmanPoint.position = { x: 6, y: 14.5, z: -11 };
+        }
+      } else if (location === 'gate') {
+        // 王爷爷在大门（默认位置）
+        if (this.oldman) {
+          this.oldman.position.set(-2, 14.5, -36);
+        }
+        const oldmanPoint = interactionPoints.find(p => p.id === 'oldman');
+        if (oldmanPoint) {
+          oldmanPoint.position = { x: -2, y: 14.0, z: -36 };
+        }
+      }
+    },
+
+    // 处理垂花门交互（多页tips）
+    handleChuihuaInteract() {
+      if (this.dialogueSystem.isTipsShowing() || this.dialogueCooldown) return;
+
+      // 解锁收集物
+      this.unlockCollectionItem('chuihuamen');
+      const tipsPages = getTipsText(this.locale, 'chuihuamen');
+      this.dialogueSystem.showMultiPageTips(tipsPages, () => {
+        this.pointerLockJustActivated = true;
+        this.dialogueCooldown = true;
+        setTimeout(() => {
+          this.pointerLockJustActivated = false;
+          this.dialogueCooldown = false;
+        }, 500);
+      });
+    },
+
+    // 处理王爷爷在垂花门的对话
+    handleOldmanAtChuihua() {
+      if (this.isInDialogue) return;
+      const dialogue = getChuihuaDialogue(this.locale);
+      this.startDialogue(dialogue, false);
     },
 
     // 处理影壁交互（通过箭头触发）
@@ -1763,24 +2100,15 @@ export default {
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // 完成"进入大门"任务，推进到"与王爷爷交流"
+        const currentQuest = this.questManager.getCurrentQuest();
+        if (currentQuest && currentQuest.id === 'quest_enter_gate') {
+          this.questManager.completeCurrentQuest();
+        }
       });
     },
 
-    // 处理垂花门交互（多页tips）
-    handleChuihuaInteract() {
-      if (this.dialogueSystem.isTipsShowing() || this.dialogueCooldown) return;
-      // 解锁收集物
-      this.unlockCollectionItem('chuihuamen');
-      const tipsPages = getTipsText(this.locale, 'chuihuamen');
-      this.dialogueSystem.showMultiPageTips(tipsPages, () => {
-        this.pointerLockJustActivated = true;
-        this.dialogueCooldown = true;
-        setTimeout(() => {
-          this.pointerLockJustActivated = false;
-          this.dialogueCooldown = false;
-        }, 500); // 500ms冷却，防止F键立即触发新交互
-      });
-    },
+
 
     // 处理石榴树交互
     handlePomegranateInteract() {
@@ -1788,6 +2116,18 @@ export default {
       // 解锁收集物
       this.unlockCollectionItem('pomegranate');
       const tipsText = getTipsText(this.locale, 'pomegranate');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理海棠树交互
+    handleTaoheInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('taohe');
+      const tipsText = getTipsText(this.locale, 'taohe');
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
@@ -1966,6 +2306,50 @@ export default {
         // 上秋千
         this.enterSwing();
       }
+    },
+
+    // 处理王氏家谱交互
+    handleFamilyBookInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 标记已交互（使交互点消失）
+      this.storyManager.setFlag('interacted_familybook', true);
+      // 解锁收集物
+      this.unlockCollectionItem('familybook');
+      // 显示tips提示框，关闭后模型消失
+      const tipsText = getTipsText(this.locale, 'familybook');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // tips关闭后模型消失（带动画）
+        this.animateFamilyBookDisappear();
+        // 完成"探索内院"任务，推进到"和王爷爷谈论家谱"
+        const currentQuest = this.questManager.getCurrentQuest();
+        if (currentQuest && currentQuest.id === 'quest_explore_courtyard') {
+          this.questManager.completeCurrentQuest();
+        }
+      });
+    },
+
+    // 家谱模型消失动画
+    animateFamilyBookDisappear() {
+      if (!this.familyBook) return;
+      const duration = 500; // 动画时长500ms
+      const startTime = Date.now();
+      const startScale = this.familyBook.scale.x;
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // 缩放从1到0
+        const scale = startScale * (1 - progress);
+        this.familyBook.scale.setScalar(scale);
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          this.familyBook.visible = false;
+          this.familyBook.scale.setScalar(startScale); // 恢复原始缩放
+        }
+      };
+      animate();
     },
 
     // 上秋千
@@ -2279,6 +2663,16 @@ export default {
   box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
 }
 
+.save-exit-btn {
+  background: #4caf50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.save-exit-btn:hover {
+  background: #43a047;
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
 .lang-switch {
   gap: 12px;
 }
@@ -2425,4 +2819,5 @@ export default {
   padding-left: 20px;
   padding-bottom: 5px;
 }
+
 </style>

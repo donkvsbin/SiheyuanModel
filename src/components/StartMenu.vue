@@ -7,14 +7,14 @@
     </div>
 
     <div class="button-left">
-      <button class="btn-main" @click="startTour">
-        <span class="btn-text-main">{{ t('startTour') }}</span>
+      <button class="btn-main" @click="startNewGame">
+        <span class="btn-text-main">{{ t('newGame') }}</span>
       </button>
     </div>
 
     <div class="button-right">
-      <button class="btn-main" @click="viewGuide">
-        <span class="btn-text-main">{{ t('viewGuide') }}</span>
+      <button class="btn-main" :class="{ disabled: !hasSave }" @click="continueGame" :disabled="!hasSave">
+        <span class="btn-text-main">{{ t('continueGame') }}</span>
       </button>
     </div>
 
@@ -111,8 +111,12 @@ export default {
       showGuide: false,
       showAbout: false,
       showSettings: false,
-      locale: i18n.getLocale()
+      locale: i18n.getLocale(),
+      hasSave: false
     };
+  },
+  mounted() {
+    this.checkSave();
   },
   computed: {
     t() {
@@ -120,8 +124,16 @@ export default {
     }
   },
   methods: {
-    startTour() {
-      this.$emit('start');
+    checkSave() {
+      const saveData = localStorage.getItem('siheyuan-save');
+      this.hasSave = !!saveData;
+    },
+    startNewGame() {
+      localStorage.removeItem('siheyuan-save');
+      this.$emit('start', { newGame: true });
+    },
+    continueGame() {
+      this.$emit('start', { newGame: false });
     },
     viewGuide() {
       this.showGuide = true;
@@ -233,6 +245,18 @@ export default {
 .btn-main:active {
   transform: translateY(3px);
   box-shadow: 0 5px 0 #3a1a06, 0 8px 14px rgba(0,0,0,0.45);
+}
+
+.btn-main.disabled {
+  background: linear-gradient(180deg, #888 0%, #666 45%, #555 100%);
+  border-color: #444;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-main.disabled:hover {
+  transform: none;
+  box-shadow: 0 10px 0 #4a2508, 0 16px 24px rgba(0,0,0,0.55);
 }
 
 .btn-main::before {

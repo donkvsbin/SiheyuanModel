@@ -13,16 +13,15 @@ export const storyData = {
                 scenes: [
                     {
                         id: "scene1_1",
-                        title: "醒来",
-                        description: "玩家在四合院中醒来，老人在不远处",
+                        title: "初见王爷爷",
+                        description: "玩家在大门口遇到王爷爷",
                         dialogue: [
-                            { speaker: "王爷爷", text: "小伙子，是来参观四合院的吧？过来歇口气。" },
-                            { speaker: "你", text: "老人家，请问这是什么地方？是老四合院吗？" },
-                            { speaker: "王爷爷", text: "哈哈，是啊！我是王爷爷，这里是'静心院'，已经有一百多年了，我们家三代人都在这儿住。" },
-                            { speaker: "你", text: "哇，好厉害！我能进去看看吗？" },
-                            { speaker: "王爷爷", text: "当然能！进去慢点儿，别漏了影壁和堂屋的老字画，都很特别。" },
-                            { speaker: "你", text: "好嘞，谢谢大爷！" },
-                            { speaker: "王爷爷", text: "去吧孩子，右边就是大门。" }
+                            { speaker: "你", text: "您好，请问是王德顺先生吗？" },
+                            { speaker: "王爷爷", text: "是啊，你是小林吧。来参观四合院的吧？过来歇口气。" },
+                            { speaker: "你", text: "是，我替我妈来看看您。" },
+                            { speaker: "王爷爷", text: "哦.....小梅啊，好久都没有见到她了，她小时候老在这院子里跑。这是'静心院'，已经有一百多年了，我们家三代人都在这儿住，除了你妈。以前真热闹，现在清静多了..." },
+                            { speaker: "你", text: "我能进去看看吗？" },
+                            { speaker: "王爷爷", text: "当然，你先进去吧，大门就在右边，别被门槛绊着了。" }
                         ]
                     }
                 ]
@@ -57,16 +56,15 @@ export const storyData = {
                 scenes: [
                     {
                         id: "scene1_1",
-                        title: "Awakening",
-                        description: "Player wakes up in the siheyuan, an old man is nearby",
+                        title: "Meeting Grandpa Wang",
+                        description: "Player meets Grandpa Wang at the main gate",
                         dialogue: [
-                            { speaker: "Grandpa Wang", text: "Young man, come to visit the siheyuan? Come and rest for a while." },
-                            { speaker: "You", text: "Old man, what is this place? Is it an old siheyuan?" },
-                            { speaker: "Grandpa Wang", text: "Haha, yes! I'm Grandpa Wang. This is 'Jingxin Courtyard'. It's over 100 years old. My family has lived here for three generations." },
-                            { speaker: "You", text: "Wow, amazing! Can I go in and have a look?" },
-                            { speaker: "Grandpa Wang", text: "Sure! Please walk slowly inside. Don't miss the screen wall and the old calligraphy and paintings in the main room. They are very special." },
-                            { speaker: "You", text: "Okay, thank you, Grandpa!" },
-                            { speaker: "Grandpa Wang", text: "Go ahead, the main entrance is on the right." }
+                            { speaker: "You", text: "Hello, are you Mr. Wang Deshun?" },
+                            { speaker: "Grandpa Wang", text: "Yes, you must be Xiaolin. Here to visit the siheyuan? Come and rest for a while." },
+                            { speaker: "You", text: "Yes, I'm here to visit you on behalf of my mother." },
+                            { speaker: "Grandpa Wang", text: "Oh... Little Mei, I haven't seen her for a long time. She used to run around this courtyard when she was young. This is 'Jingxin Courtyard'. It's over 100 years old. My family has lived here for three generations, except for your mother. It used to be so lively, but now it's much quieter..." },
+                            { speaker: "You", text: "Can I go in and have a look?" },
+                            { speaker: "Grandpa Wang", text: "Of course, go ahead. The main gate is on the right. Watch out for the threshold." }
                         ]
                     }
                 ]
@@ -110,6 +108,23 @@ export function getShortDialogue(locale) {
         ]
     };
     return shortDialogues[locale] || shortDialogues['zh'];
+}
+
+// 垂花门对话（王爷爷在垂花门处的新对话）
+export function getChuihuaDialogue(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "你", text: "这么大的院子，一定有很多人住吧。" },
+            { speaker: "王爷爷", text: "现在就剩我和我老伴了。半年？一年？记不清了。忙，都忙。我有两个儿子一个女儿，都跑出去了，剩我俩在这院子里。" },
+            { speaker: "王爷爷", text: "这院子以前热闹。我爹在的时候，一大家子十几口人。后来孩子们一个个飞走了，就剩我一个。人老了，脑子也锈了，以前的事...像隔着毛玻璃，看得见，摸不着。" }
+        ],
+        en: [
+            { speaker: "You", text: "Such a big courtyard, there must be many people living here." },
+            { speaker: "Grandpa Wang", text: "Now it's just me and my wife. Half a year? A year? I can't remember. Busy, all busy. I have two sons and a daughter, they all left, leaving just the two of us in this courtyard." },
+            { speaker: "Grandpa Wang", text: "This courtyard used to be lively. When my father was alive, there were more than a dozen people in the family. Later, the children flew away one by one, leaving only me. When you get old, your mind rusts too. The past... it's like looking through frosted glass, you can see it but can't touch it." }
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
 }
 
 
@@ -193,6 +208,11 @@ export function getTipsText(locale, tipId) {
             zh: "厨房是四合院中用于烹饪食物的地方。它通常位于院落的东南角，与正房相对。厨房中设有灶台、储物柜和各种烹饪用具。",
             en: "The kitchen is the place in the siheyuan where food is cooked. It is usually located in the southeast corner, opposite the main house. The kitchen features a stove, storage cabinets, and various cooking utensils."
         },
+        //王氏家谱
+        familybook: {
+            zh: "家谱是记录家族成员和血缘关系的重要文献。在传统四合院中，家谱通常由家族长辈保管，记录祖先的名字、生平和家族传承。通过家谱，人们可以了解自己的家族历史和辈分。",
+            en: "The family genealogy is an important document recording family members and blood relationships. In traditional siheyuan, the genealogy is usually kept by the family elders, recording the names, life stories, and family heritage of ancestors. Through the genealogy, people can understand their family history and generational status."
+        },
 
     };
     const tip = tipsData[tipId];
@@ -203,6 +223,16 @@ export function getTipsText(locale, tipId) {
  * 交互点配置
  */
 export const interactionPoints = [
+    {
+        id: "familybook",
+        name: "王氏家谱",
+        nameEn: "Wang Family Book",
+        position: { x: -1, y: 15.5, z: 20 },
+        radius: 2,
+        action: "interact",
+        once: true,
+        condition: null
+    },
     {
         id: "oldman",
         name: "王爷爷",
@@ -262,7 +292,7 @@ export const interactionPoints = [
         name: "纸墨笔砚",
         nameEn: "Four Treasures",
         position: { x: 1, y: 16, z: 18 },
-        radius: 4,
+        radius: 2,
         action: "interact",
         condition: null
     },
@@ -316,6 +346,15 @@ export const interactionPoints = [
         name: "茶点",
         nameEn: "Tea",
         position: { x: 1, y: 16, z: 22 },
+        radius: 2,
+        action: "interact",
+        condition: null
+    },
+    {
+        id: "taohe",
+        name: "海棠树",
+        nameEn: "Taohe Tree",
+        position: { x: 7, y: 14.5, z: 5 },
         radius: 3,
         action: "interact",
         condition: null
@@ -329,28 +368,82 @@ export const interactionPoints = [
 export const collectionData = {
     zh: {
         items: [
-            // 在这里添加收集物，格式示例：
-            // {
-            //     id: "item1",
-            //     name: "物品名称",
-            //     icon: "🔮",
-            //     interactionId: "交互点ID",
-            //     location: "发现地点",
-            //     description: "物品描述"
-            // }
+            {
+                id: "wang_family_book",
+                name: "王氏家谱",
+                icon: "",
+                image: "/photo/Collection/Book.png",
+                interactionId: "familybook",
+                location: "正房",
+                description: "王氏家族世代相传的家谱，记录了王家三代人在静心院的生活点滴。泛黄的纸页上记载着家族的荣耀与传承。"
+            },
+            {
+                id: "land_deed",
+                name: "地契",
+                icon: "",
+                image: "/photo/Collection/Landdeed.png",
+                interactionId: "landdeed",
+                location: "正房",
+                description: "地契是房屋和土地所有权的证明文件。在古代北京，四合院的主人会保存地契，以证明自己对房屋的合法拥有权。地契通常盖有官方印章，具有法律效力。"
+            },
+            {
+                id: "folding_fan",
+                name: "折扇",
+                icon: "",
+                image: "/photo/Collection/Fan.png",
+                interactionId: "fan",
+                location: "东厢房",
+                description: "折扇是传统的纳凉工具。夏天，人们常在院子里一边乘凉，一边摇扇子。折扇不仅实用，还常带有书法或绘画装饰。"
+            },
+            {
+                id: "jianzi",
+                name: "毽子",
+                icon: "",
+                image: "/photo/Collection/Jianzi.png",
+                interactionId: "jianzi",
+                location: "内院",
+                description: "踢毽子是传统的儿童游戏，在院子里非常常见。"
+            },
         ]
     },
     en: {
         items: [
-            // Add collectibles here, format example:
-            // {
-            //     id: "item1",
-            //     name: "Item Name",
-            //     icon: "🔮",
-            //     interactionId: "interactionId",
-            //     location: "Discovery Location",
-            //     description: "Item description"
-            // }
+            {
+                id: "wang_family_book",
+                name: "Wang Family Genealogy",
+                icon: "",
+                image: "/photo/Collection/Book.png",
+                interactionId: "familybook",
+                location: "Main House",
+                description: "The Wang family's ancestral genealogy, passed down through generations, recording three generations of the Wang family's life in Jingxin Courtyard. The yellowed pages bear witness to the family's honor and legacy."
+            },
+            {
+                id: "land_deed",
+                name: "Land Deed",
+                icon: "",
+                image: "/photo/Collection/Landdeed.png",
+                interactionId: "landdeed",
+                location: "Main House",
+                description: "The land deed is a legal document proving ownership of houses and land. In ancient Beijing, siheyuan owners would keep land deeds to prove their legal ownership of the property. The deed usually bears an official seal and has legal validity."
+            },
+            {
+                id: "folding_fan",
+                name: "Folding Fan",
+                icon: "",
+                image: "/photo/Collection/Fan.png",
+                interactionId: "fan",
+                location: "East Wing",
+                description: "The folding fan is a traditional cooling tool. In summer, people would sit in the courtyard enjoying the cool breeze while waving fans. Folding fans are not only practical but often decorated with calligraphy or paintings."
+            },
+            {
+                id: "jianzi",
+                name: "Jianzi",
+                icon: "",
+                image: "/photo/Collection/Jianzi.png",
+                interactionId: "jianzi",
+                location: "Inner Courtyard",
+                description: "Kick shuttlecock is a traditional children's game, very common in the courtyard."
+            }
         ]
     }
 };
@@ -358,6 +451,99 @@ export const collectionData = {
 // 获取当前语言的收集物数据
 export function getCollectionData(locale) {
     return collectionData[locale] || collectionData['zh'];
+}
+
+// 任务数据
+export const questData = {
+    zh: [
+        {
+            id: "quest_talk_to_grandpa",
+            name: "和王爷爷说话",
+            description: "外公应该在大门口附近，先去找他聊聊。"
+        },
+        {
+            id: "quest_explore_threshold",
+            name: "探索门槛",
+            description: "和王爷爷对话后，去右边的门槛看看。"
+        },
+        {
+            id: "quest_enter_gate",
+            name: "进入大门",
+            description: "进入大门，观察影壁。"
+        },
+        {
+            id: "quest_meet_grandpa_chuihua",
+            name: "与王爷爷交流",
+            description: "来到垂花门，与王爷爷交流。"
+        },
+        {
+            id: "quest_explore_courtyard",
+            name: "探索内院",
+            description: "探索四合院内院，发现更多有趣的事物。"
+        },
+        {
+            id: "quest_talk_about_family_book",
+            name: "和王爷爷谈论家谱",
+            description: "获得家谱后，和王爷爷谈论家谱的内容。"
+        },
+        {
+            id: "quest_talk_to_grandma",
+            name: "和老奶奶聊天",
+            description: "院子里有位老奶奶，去和她打个招呼。"
+        },
+        {
+            id: "quest_tea_ceremony",
+            name: "体验茶道",
+            description: "西厢房可以体验茶道，去试试看。"
+        }
+    ],
+    en: [
+        {
+            id: "quest_talk_to_grandpa",
+            name: "Talk to Grandpa",
+            description: "Grandpa should be near the main gate, go talk to him."
+        },
+        {
+            id: "quest_explore_threshold",
+            name: "Explore the Threshold",
+            description: "After talking to Grandpa, go check out the threshold on the right."
+        },
+        {
+            id: "quest_enter_gate",
+            name: "Enter the Gate",
+            description: "Enter the main gate and observe the screen wall."
+        },
+        {
+            id: "quest_meet_grandpa_chuihua",
+            name: "Talk to Grandpa",
+            description: "Come to the Chuihua Gate and talk to Grandpa."
+        },
+        {
+            id: "quest_explore_courtyard",
+            name: "Explore Courtyard",
+            description: "Explore the inner courtyard and discover more interesting things."
+        },
+        {
+            id: "quest_talk_about_family_book",
+            name: "Talk About Family Book",
+            description: "After obtaining the family book, talk to Grandpa about it."
+        },
+        {
+            id: "quest_talk_to_grandma",
+            name: "Chat with Grandma",
+            description: "There's an old lady in the courtyard, go say hello."
+        },
+        {
+            id: "quest_tea_ceremony",
+            name: "Experience Tea Ceremony",
+            description: "The tea ceremony is available in the west wing, give it a try."
+        }
+    ]
+};
+
+// 获取当前语言的任务数据
+export function getQuestData(locale) {
+    return questData[locale] || questData['zh'];
 }
 
 export default storyData;

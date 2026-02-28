@@ -17,8 +17,16 @@
             :class="{ unlocked: isUnlocked(item.id), locked: !isUnlocked(item.id) }"
             @click="selectItem(item)"
           >
-            <div class="item-icon">{{ isUnlocked(item.id) ? item.icon : '???' }}</div>
-            <div class="item-name">{{ isUnlocked(item.id) ? item.name : '???' }}</div>
+            <div class="item-image-wrapper">
+              <img 
+                v-if="item.image" 
+                :src="item.image" 
+                class="item-image"
+                :class="{ silhouette: !isUnlocked(item.id) }"
+              />
+              <div v-else class="item-icon-fallback">{{ isUnlocked(item.id) ? item.icon : '?' }}</div>
+            </div>
+            <div class="item-name">{{ item.name }}</div>
           </div>
         </div>
 
@@ -32,9 +40,9 @@
           </div>
         </div>
         <div v-else-if="selectedItem && !isUnlocked(selectedItem.id)" class="item-detail locked">
-          <h3 class="detail-title">???</h3>
+          <h3 class="detail-title">{{ selectedItem.name }}</h3>
           <div class="detail-icon">🔒</div>
-          <p class="detail-description">{{ t('lockedItemHint') }}</p>
+          <p class="detail-description">{{ t('lockedItemLocation') }}: {{ selectedItem.location }}</p>
         </div>
       </div>
     </div>
@@ -206,10 +214,11 @@ export default {
 }
 
 .item-card {
-  aspect-ratio: 1;
+  width: 100px;
+  height: 100px;
   background: rgba(139, 90, 43, 0.6);
-  border: 2px solid rgba(212, 175, 55, 0.3);
-  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -221,6 +230,8 @@ export default {
 .item-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+  position: relative;
 }
 
 .item-card.unlocked {
@@ -234,9 +245,29 @@ export default {
   opacity: 0.6;
 }
 
-.item-icon {
+.item-image-wrapper {
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: all 0.3s;
+}
+
+.item-image.silhouette {
+  filter: grayscale(100%) brightness(0.3) contrast(1.2);
+  opacity: 0.6;
+}
+
+.item-icon-fallback {
   font-size: 36px;
-  margin-bottom: 8px;
 }
 
 .item-name {

@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <StartMenu v-if="!gameStarted" @start="startGame" />
-    <SiheyuanScene v-else />
+    <SiheyuanScene v-else :is-new-game="isNewGame" :show-intro="isNewGame" @exit="exitGame" />
   </div>
 </template>
 
@@ -9,6 +9,7 @@
 <script>
 import SiheyuanScene from './components/SiheyuanScene.vue'
 import StartMenu from './components/StartMenu.vue'
+import StoryIntro from './components/StoryIntro.vue'
 
 export default {
   name: 'App',
@@ -18,12 +19,18 @@ export default {
   },
   data() {
     return {
-      gameStarted: false
+      gameStarted: false,
+      isNewGame: true
     };
   },
   methods: {
-    startGame() {
+    startGame(options) {
+      this.isNewGame = options ? options.newGame : true;
       this.gameStarted = true;
+    },
+    exitGame() {
+      this.gameStarted = false;
+      this.isNewGame = true;
     }
   }
 }

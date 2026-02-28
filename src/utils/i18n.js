@@ -6,7 +6,8 @@
 const messages = {
     zh: {
         // StartMenu
-        startTour: '开始参观',
+        newGame: '新游戏',
+        continueGame: '继续游戏',
         viewGuide: '参观指南',
         settings: '设置',
         about: '关于',
@@ -49,7 +50,10 @@ const messages = {
         maxFPS: '最高FPS',
         timeOptions: '时间选项',
         sunTime: '太阳时间',
-        backToGame: '回到游戏',
+        backToGame: '返回游戏',
+        saveAndExit: '保存并退出',
+        clickToContinue: '点击继续',
+        currentQuest: '当前任务',
         back: '返回',
         // Interaction
         interactHint: 'test',
@@ -73,11 +77,13 @@ const messages = {
         categoryCharacter: '人物',
         categoryNature: '自然',
         discoveredAt: '发现地点',
-        lockedItemHint: '继续探索四合院，发现更多隐藏的秘密...'
+        lockedItemHint: '继续探索四合院，发现更多隐藏的秘密...',
+        lockedItemLocation: '位置提示'
     },
     en: {
         // StartMenu
-        startTour: 'Start Tour',
+        newGame: 'New Game',
+        continueGame: 'Continue',
         viewGuide: 'View Guide',
         settings: 'Settings',
         about: 'About',
@@ -121,6 +127,9 @@ const messages = {
         timeOptions: 'Time Options',
         sunTime: 'Sun Time',
         backToGame: 'Back to Game',
+        saveAndExit: 'Save & Exit',
+        clickToContinue: 'Click to continue',
+        currentQuest: 'Current Quest',
         back: 'Back',
         // Interaction
         interactHint: 'test',
@@ -144,7 +153,8 @@ const messages = {
         categoryCharacter: 'Characters',
         categoryNature: 'Nature',
         discoveredAt: 'Discovered at',
-        lockedItemHint: 'Continue exploring the siheyuan to discover more secrets...'
+        lockedItemHint: 'Continue exploring the siheyuan to discover more secrets...',
+        lockedItemLocation: 'Location Hint'
     }
 };
 
