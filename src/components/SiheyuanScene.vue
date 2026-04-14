@@ -9,7 +9,49 @@
         <div class="loading-text">{{ loadingProgress.toFixed(0) }}%</div>
       </div>
     </div>
-    <!-- XYZ坐标和FPS - 右上角 -->
+    <!-- 游戏时间 - 左上角 -->
+    <div class="time-card" v-if="!loading && player">
+      <div class="time-period">{{ currentTimePeriod }}</div>
+      <div class="time-value">{{ formatGameTime }}</div>
+    </div>
+
+    <!-- 拍照闪光效果 -->
+    <div class="photo-flash" v-if="showPhotoFlash"></div>
+
+    <!-- 拍照功能仅通过P键触发，不显示按钮 -->
+
+    <!-- 照片画廊 -->
+    <div v-if="showPhotoGallery" class="photo-gallery-overlay" @click="closePhotoGallery">
+      <div class="photo-gallery-panel" @click.stop>
+        <button class="gallery-close-btn" @click="closePhotoGallery">×</button>
+        <h2 class="gallery-title">精彩瞬间</h2>
+        <div class="gallery-grid">
+          <div v-for="(photo, index) in photoGallery" :key="index" class="gallery-item" @click="previewImage(photo)">
+            <img :src="photo.dataUrl" class="gallery-image" />
+            <div class="gallery-info">
+              <span class="gallery-time">{{ photo.time }}</span>
+              <button class="gallery-download-btn" @click.stop="downloadPhoto(photo)">下载</button>
+            </div>
+          </div>
+          <div v-if="photoGallery.length === 0" class="gallery-empty">
+            还没有照片，按 P 键或点击相机按钮拍照吧！
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 照片预览大图 -->
+    <div v-if="previewPhoto" class="photo-preview-overlay" @click="closePreview">
+      <div class="photo-preview-content" @click.stop>
+        <button class="preview-close-btn" @click="closePreview">×</button>
+        <img :src="previewPhoto.dataUrl" class="preview-image" />
+        <div class="preview-info">
+          <span class="preview-time">{{ previewPhoto.time }}</span>
+          <button class="preview-download-btn" @click.stop="downloadPhoto(previewPhoto)">下载</button>
+        </div>
+      </div>
+    </div>
+    <!-- XYZ坐标、FPS - 右上角 -->
     <div class="player-info" v-if="!loading && player">
       <div>X: {{ playerPos.x.toFixed(2) }}</div>
       <div>Y: {{ playerPos.y.toFixed(2) }}</div>
@@ -30,6 +72,31 @@
     <!-- 当前位置显示 -->
     <div class="location-hint" v-if="!loading && displayLocationImage" :class="{ 'fade-out': isLocationFadingOut }" :style="{ backgroundImage: 'url(' + displayLocationImage + ')' }">
     </div>
+
+    <!-- 键位提示 - 右下角 -->
+    <div class="key-hints" v-if="!loading && introCompleted && !showSettings && !isInDialogue && !showPhotoGallery && !showCollection && !showQuestPanel && !showAIChat">
+      <div class="key-hint-row">
+        <span class="key-badge">K</span>
+        <span class="key-desc">{{ t('questPanel') }}</span>
+      </div>
+      <div class="key-hint-row">
+        <span class="key-badge">L</span>
+        <span class="key-desc">{{ t('collectionLog') }}</span>
+      </div>
+      <div class="key-hint-row">
+        <span class="key-badge">O</span>
+        <span class="key-desc">{{ t('photoGallery') }}</span>
+      </div>
+      <div class="key-hint-row">
+        <span class="key-badge">P</span>
+        <span class="key-desc">{{ t('takePhoto') }}</span>
+      </div>
+      <div class="key-hint-row">
+        <span class="key-badge">H</span>
+        <span class="key-desc">{{ t('aiAssistant') }}</span>
+      </div>
+    </div>
+
     <div class="settings-overlay" v-if="showSettings">
       <div class="settings-panel">
         <h2 class="settings-title">{{ t('settingsTitle') }}</h2>
@@ -61,6 +128,10 @@
         <!-- 视频设置 -->
         <div v-if="settingsCategory === 'video'" class="settings-detail">
           <h3 class="settings-section-title">{{ t('videoOptions') }}</h3>
+          <div class="settings-group settings-row">
+            <label>GTAO {{ locale === 'zh' ? '环境光遮蔽' : 'Ambient Occlusion' }}</label>
+            <input type="checkbox" v-model="gtaoEnabled" />
+          </div>
           <div class="settings-group">
             <label>{{ t('ambientLight') }} {{ ambientIntensity.toFixed(2) }}</label>
             <input type="range" v-model.number="ambientIntensity" min="0" max="2" step="0.05" />
@@ -107,9 +178,21 @@
         <!-- 时间设置 -->
         <div v-if="settingsCategory === 'time'" class="settings-detail">
           <h3 class="settings-section-title">{{ t('timeOptions') }}</h3>
-          <div class="settings-group">
-            <label>{{ t('sunTime') }} {{ sunTime }}:00</label>
-            <input type="range" v-model.number="sunTime" min="9" max="18" step="1" />
+          <!-- 时间流逝开关 -->
+          <div class="settings-group settings-row">
+            <label>{{ t('timeFlow') }}</label>
+            <input type="checkbox" v-model="timeFlowEnabled" @change="onTimeFlowToggle" />
+          </div>
+          <!-- 当前时间（仅在时间流逝关闭时可调） -->
+          <div class="settings-group" :class="{ 'setting-disabled': timeFlowEnabled }">
+            <label>{{ t('sunTime') }} {{ formatTime(gameTime) }}</label>
+            <input type="range" v-model.number="gameTime" min="9" max="18" step="0.1" :disabled="timeFlowEnabled" />
+          </div>
+          <!-- 时间流速（仅在时间流逝开启时有效） -->
+          <div class="settings-group" :class="{ 'setting-disabled': !timeFlowEnabled }">
+            <label>{{ t('timeSpeed') }} {{ timeSpeedMultiplier.toFixed(1) }}x</label>
+            <input type="range" v-model.number="timeSpeedMultiplier" min="0.1" max="5" step="0.1" :disabled="!timeFlowEnabled" />
+            <span class="setting-hint">{{ t('timeSpeedHint') }}</span>
           </div>
           <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
         </div>
@@ -169,6 +252,36 @@
       v-if="questManager && introCompleted"
       :quest-manager="questManager"
     />
+
+    <!-- AI 聊天界面 -->
+    <AIChat
+      :visible="showAIChat"
+      :locale="locale"
+      @close="closeAIChat"
+    />
+
+    <!-- 任务列表（K键） -->
+    <QuestList
+      :visible="showQuestPanel"
+      :locale="locale"
+      :completed-quests="completedQuests"
+      :current-quest-id="currentQuestId"
+      @close="closeQuestPanel"
+    />
+
+    <!-- 结尾动画 -->
+    <div v-if="showEnding" class="ending-overlay">
+      <div class="ending-content">
+        <div
+          v-for="(text, index) in endingTexts"
+          :key="index"
+          class="ending-text"
+          :class="{ 'show': index <= endingTextIndex }"
+        >
+          {{ text }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -193,7 +306,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {StoryManager} from '../game/StoryManager.js';
 import {DialogueSystem} from '../game/DialogueSystem.js';
 import {CollectionSystem} from '../game/CollectionSystem.js';
-import {getChuihuaDialogue, getCollectionData, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
+import {getChuihuaDialogue, getCollectionData, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getPhotoPieceDialogue, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
 import {i18n} from '../utils/i18n.js';
 import CalligraphyPractice from './CalligraphyPractice.vue';
 import TeaCeremony from './TeaCeremony.vue';
@@ -203,6 +316,8 @@ import {TeaCeremony as TeaCeremonyGame} from '../game/TeaCeremony.js';
 import {saveManager} from '../game/SaveManager.js';
 import {QuestManager} from '../game/QuestManager.js';
 import QuestPanel from './QuestPanel.vue';
+import QuestList from './QuestList.vue';
+import AIChat from './AIChat.vue';
 
 export default {
   components: {
@@ -210,7 +325,9 @@ export default {
     TeaCeremony,
     CollectionView,
     StoryIntro,
-    QuestPanel
+    QuestPanel,
+    QuestList,
+    AIChat
   },
   props: {
     isNewGame: {
@@ -238,6 +355,10 @@ export default {
       loadingProgress: 0,
       // 加载提示语索引
       currentLoadingHintIndex: 0,
+      // 资源加载追踪
+      totalResources: 0,
+      loadedResources: 0,
+      sceneLoaded: false, // 主场景是否加载完成
       collidableObjects: [],
       playerPos: { x: 0, y: 0, z: 0 },
       oldman: null,
@@ -260,19 +381,31 @@ export default {
       // 默认环境光压暗一点、方向光更强，配合 AO 让方块之间的阴影更明显（类似 MC）
       ambientIntensity: 0.6,
       directionalIntensity: 4.5,
-      // AO 参数：专门控制“建模与建模之间”的平滑阴影
+      // AO 参数：专门控制"建模与建模之间"的平滑阴影
       aoIntensity: 2.8, // 强化强度，让建模间阴影更加明显
       aoRadius: 3.5,   // 增大范围，强化遮蔽效果
+      // GTAO 开关
+      gtaoEnabled: true,
       bloomStrength: 0.2,
       toneMappingExposure: 1.25  ,
       targetFPS: 90, // 目标帧率
       sunTime: 10, // 太阳时间 9~18点
+      // 时间系统
+      gameTime: 10.5, // 游戏内时间（默认10:30）
+      timeStart: null, // 时间开始标记
+      timeCycleDuration: 900000, // 15分钟 = 900000毫秒
+      timeSpeedMultiplier: 1.0, // 时间流速倍率（1.0 = 正常）
+      timeStartHour: 9, // 开始时间（9点）
+      timeEndHour: 18, // 结束时间（18点）
+      timeFlowEnabled: true, // 时间流逝开关（默认开启）
       // 音乐：随机播放，本轮播过的不重复，播完一轮再进入下一轮
       musicEnabled: true,
       musicVolume: 0.5,
       bgm: null,
       _musicDelayTimer: null,
       _bgmTracksRemaining: null, // 当前轮未播放的曲目，空则重新洗牌
+      _pendingBgmStart: false, // 等待用户交互后播放
+      _bgmStarted: false, // 音乐是否已开始播放
       // 剧情系统
       storyManager: null,
       dialogueSystem: null,
@@ -300,6 +433,11 @@ export default {
       // 茶道游戏状态
       showTeaCeremony: false,
       teaCeremonyStep: 0,
+      // 拍照截图功能
+      showPhotoFlash: false,
+      photoGallery: [],
+      showPhotoGallery: false,
+      previewPhoto: null,
       teaCeremonyScore: 0,
       teaCeremonyRating: { text: '' },
       teaCeremonyComplete: false,
@@ -314,7 +452,15 @@ export default {
       // 跳跃状态
       jumpPressed: false,
       // 任务系统
-      questManager: null
+      questManager: null,
+      // AI 聊天
+      showAIChat: false,
+      // 任务面板
+      showQuestPanel: false,
+      // 结尾动画
+      showEnding: false,
+      endingTextIndex: 0,
+      endingTexts: []
     };
   },
   computed: {
@@ -324,6 +470,52 @@ export default {
     currentLoadingHintText() {
       const hints = ['loadingHint1', 'loadingHint2', 'loadingHint3', 'loadingHint4'];
       return this.t(hints[this.currentLoadingHintIndex]);
+    },
+    formatGameTime() {
+      const hours = Math.floor(this.gameTime);
+      const minutes = Math.floor((this.gameTime - hours) * 60);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    },
+    currentTimePeriod() {
+      const hour = this.gameTime;
+      // 9~10点: 清晨, 10~12点: 上午, 12~13点: 中午, 13~17点: 下午, 17~18点: 黄昏
+      if (hour >= 9 && hour < 10) {
+        return this.t('timeDawn');
+      } else if (hour >= 10 && hour < 12) {
+        return this.t('timeMorning');
+      } else if (hour >= 12 && hour < 13) {
+        return this.t('timeNoon');
+      } else if (hour >= 13 && hour < 17) {
+        return this.t('timeAfternoon');
+      } else if (hour >= 17 && hour < 18) {
+        return this.t('timeDusk');
+      }
+      return this.t('timeMorning');
+    },
+    // 已完成的任务列表
+    completedQuests() {
+      if (!this.questManager) return [];
+      const questIds = [
+        'quest_talk_to_grandpa',
+        'quest_explore_threshold',
+        'quest_enter_gate',
+        'quest_meet_grandpa_chuihua',
+        'quest_explore_courtyard',
+        'quest_talk_about_family_book',
+        'quest_find_pen',
+        'quest_talk_about_photo',
+        'quest_find_photo_piece',
+        'quest_talk_after_photo_piece',
+        'quest_pick_pomegranate',
+        'quest_share_pomegranate',
+        'quest_explore_freely'
+      ];
+      return questIds.filter(id => this.questManager.isQuestCompleted(id));
+    },
+    // 当前任务ID
+    currentQuestId() {
+      if (!this.questManager) return '';
+      return this.questManager.getCurrentQuest()?.id || '';
     }
   },
   watch: {
@@ -355,6 +547,12 @@ export default {
         this.requestLock();
       }
     },
+    showAIChat(v) {
+      // AI 聊天界面关闭时，恢复游戏控制
+      if (!v) {
+        this.requestLock();
+      }
+    },
     musicEnabled(v) {
       if (this.bgm) {
         this.bgm.muted = !v;
@@ -374,6 +572,12 @@ export default {
     aoRadius(v) {
       if (this.gtaoManager) {
         this.gtaoManager.setRadius(v);
+      }
+    },
+    // GTAO 开关
+    gtaoEnabled(v) {
+      if (this.gtaoManager) {
+        this.gtaoManager.setEnabled(v);
       }
     }
   },
@@ -418,7 +622,7 @@ export default {
           y: this.player.position.y,
           z: this.player.position.z
         } : null,
-        unlockedItems: this.collectionSystem ? this.collectionSystem.unlockedItems : [],
+        collectionData: this.collectionSystem ? this.collectionSystem.getSessionData() : null,
         storyFlags: storyFlags,
         grandpaMemory: this.grandpaMemory || 0,
         locale: this.locale,
@@ -446,9 +650,9 @@ export default {
         }, true);
       }
       
-      // 恢复收集物品
-      if (saveData.unlockedItems && this.collectionSystem) {
-        this.collectionSystem.unlockedItems = saveData.unlockedItems;
+      // 恢复收集物品（当前游戏会话）
+      if (saveData.collectionData && this.collectionSystem) {
+        this.collectionSystem.loadSessionData(saveData.collectionData);
       }
       
       // 恢复剧情进度
@@ -525,6 +729,7 @@ export default {
 
       // 后期处理合成器
       const composer = new EffectComposer(renderer);
+      this.composer = composer;
       const renderPass = new RenderPass(scene, camera);
       composer.addPass(renderPass);
 
@@ -646,8 +851,27 @@ export default {
       // 加载模型
       const loader = new GLTFLoader();
       const dracoLoader = new DRACOLoader();
-      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+      // 使用本地 Draco 解码器，避免网络超时问题
+      dracoLoader.setDecoderPath('/draco/');
       loader.setDRACOLoader(dracoLoader);
+
+      // 通用模型优化函数：启用视锥体裁剪和静态优化
+      const optimizeModel = (model, isStatic = true) => {
+        model.traverse((child) => {
+          if (child.isMesh) {
+            // 启用视锥体裁剪，看不见的物体不渲染
+            child.frustumCulled = true;
+            // 静态物体禁用矩阵自动更新，减少 CPU 计算
+            if (isStatic) {
+              child.matrixAutoUpdate = false;
+              child.updateMatrix();
+            }
+          }
+        });
+      };
+
+      // 设置总资源数：主场景 + 16个模型/图片资源
+      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、书法、族谱、钢笔、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -664,10 +888,13 @@ export default {
             this.guidance = model;
             this.guidanceBaseY = 16;
             this.guidanceTime = 0;
+            optimizeModel(model, false); // 箭头是动态的，不禁用 matrixAutoUpdate
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('引导箭头模型加载失败:', err);
+            this.updateLoadingProgress(); // 即使失败也更新进度
           }
         );
       };
@@ -687,10 +914,13 @@ export default {
             this.arrow2 = model;
             this.arrow2BaseY = 16.5;
             this.arrow2Time = 0;
+            optimizeModel(model, false); // 箭头是动态的
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('第二个箭头模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -709,10 +939,81 @@ export default {
             model.rotation.y = Math.PI / 2;
             scene.add(model);
             this.screenWall = model;
+            optimizeModel(model, true); // 静态模型，启用完整优化
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('screenwall模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      const loadFan = () => {
+        const fanLoader = new GLTFLoader();
+        fanLoader.setDRACOLoader(dracoLoader);
+        fanLoader.load(
+          '/models/Fan.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(36, 16.5, 17);
+            model.scale.setScalar(1.0);
+            model.rotation.y = Math.PI;
+            scene.add(model);
+            this.fan = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('折扇模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      const loadDiqi = () => {
+        const diqiLoader = new GLTFLoader();
+        diqiLoader.setDRACOLoader(dracoLoader);
+        diqiLoader.load(
+          '/models/Diqi.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-30, 16.7, 25);
+            model.scale.setScalar(1.0);
+            scene.add(model);
+            this.diqi = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('地契模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      const loadJianzi = () => {
+        const jianziLoader = new GLTFLoader();
+        jianziLoader.setDRACOLoader(dracoLoader);
+        jianziLoader.load(
+          '/models/Jianzi.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-5, 16, 9);
+            model.scale.setScalar(0.5);
+            model.rotation.y = Math.PI;
+            scene.add(model);
+            this.jianzi = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('毽子模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -729,11 +1030,13 @@ export default {
             model.rotation.y = Math.PI / 2;
             scene.add(model);
             this.calligraphy = model;
-            //console.log('calligraphy模型加载成功，位置:', model.position);
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('calligraphy模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -749,7 +1052,6 @@ export default {
             model.position.set(-1, 15.5, 20);
             model.scale.setScalar(1);
             model.rotation.x = Math.PI / 2;
-            //model.rotation.y = Math.PI / 2;\
             model.rotation.z = -Math.PI / 2;
             model.traverse((child) => {
               if (child.isMesh) {
@@ -759,10 +1061,107 @@ export default {
             });
             scene.add(model);
             this.familyBook = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('家谱模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      // 加载钢笔模型
+      const loadPen = () => {
+        const penLoader = new GLTFLoader();
+        penLoader.setDRACOLoader(dracoLoader);
+        penLoader.load(
+          '/models/pen.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-30, 16.8, 16);
+            model.scale.setScalar(0.6);
+            model.rotation.y = Math.PI / 2;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            scene.add(model);
+            this.pen = model;
+            optimizeModel(model, true); // 静态模型
+            this.createPenOutline();
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('钢笔模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      // 加载全家福模型
+      const loadFamilyPhoto = () => {
+        const photoLoader = new GLTFLoader();
+        photoLoader.setDRACOLoader(dracoLoader);
+        photoLoader.load(
+          '/models/family.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(-29.6, 17.1, 16);
+            model.scale.setScalar(1);
+            model.rotation.y = Math.PI;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            scene.add(model);
+            this.familyPhoto = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('全家福模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      // 加载三舅照片
+      const loadThirdSonPhoto = () => {
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+          '/photo/Character2D/thirdson.webp',
+          (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            const material = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true,
+              side: THREE.DoubleSide,
+              color: 0x808080
+            });
+            const plane = new THREE.Mesh(geometry, material);
+            plane.position.set(27, 15.56, -7);
+            plane.rotation.x = -Math.PI *2/5;
+            plane.scale.setScalar(0.1);
+            scene.add(plane);
+            this.thirdSonPhoto = plane;
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('三舅照片加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -819,10 +1218,12 @@ export default {
             this.taoheArrow = taohe.model;
             this.taoheArrowBaseY = taohe.baseY;
             this.taoheArrowTime = taohe.time;
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('箭头模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -870,6 +1271,7 @@ export default {
             
             scene.add(model);
             this.oldman = model;
+            optimizeModel(model, false); // 老人可能移动，保持动态
 
             // 根据剧情状态设置王爷爷位置
             this.updateGrandpaPosition();
@@ -893,12 +1295,13 @@ export default {
               this.oldmanMixer = mixer;
               this.oldmanAction = action;
             }
+            this.updateLoadingProgress();
           },
           (progress) => {
-            //console.log('老人模型加载进度:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
           },
           (err) => {
             console.error('老人人物 GLB 加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -957,10 +1360,12 @@ export default {
               action.play();
               this.oldwomanPettingMixer = mixer;
             }
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('老妇人模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -1011,10 +1416,12 @@ export default {
               .setFriction(0)
               .setRestitution(0);
             this.world.createCollider(catColliderDesc);
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('猫模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -1058,10 +1465,13 @@ export default {
             
             scene.add(model);
             this.tea = model;
+            optimizeModel(model, true); // 静态模型
+            this.updateLoadingProgress();
           },
           undefined,
           (err) => {
             console.error('茶点模型加载失败:', err);
+            this.updateLoadingProgress();
           }
         );
       };
@@ -1165,7 +1575,10 @@ export default {
           this.player = capsule;
           smoothedCameraY = this.player.position.y + cameraEyeHeight;
 
-          this.loading = false;
+          // 主场景加载完成
+          this.sceneLoaded = true;
+          this.updateLoadingProgress();
+          
           // 场景加载完成后加载引导箭头和老人模型
           loadGuidance();
           loadArrow2();
@@ -1174,44 +1587,38 @@ export default {
           loadCat();
           loadTea();
           loadScreenWall();
+          loadFan();
+          loadDiqi();
+          loadJianzi();
           loadCalligraphy();
           loadFamilyBook();
+          loadPen();
+          loadFamilyPhoto();
+          loadThirdSonPhoto();
           loadAllArrows();
           
-          // 如果不是新游戏，恢复玩家位置、剧情进度并跳过剧情介绍
-          if (!this.isNewGame) {
-            this.introCompleted = true;
-            // 恢复玩家位置（在模型加载完成后）
-            const saveData = saveManager.load();
-            if (saveData) {
-              // 恢复玩家位置
-              if (saveData.playerPosition) {
-                this.player.position.set(
-                  saveData.playerPosition.x,
-                  saveData.playerPosition.y,
-                  saveData.playerPosition.z
-                );
-                this.playerBody.setTranslation({
-                  x: saveData.playerPosition.x,
-                  y: saveData.playerPosition.y,
-                  z: saveData.playerPosition.z
-                }, true);
-                this.playerPos = { ...saveData.playerPosition };
-              }
-              // 恢复剧情进度（storyFlags）
-              if (saveData.storyFlags) {
-                this.storyManager.loadFlags(saveData.storyFlags);
-              }
-              // 注意：王爷爷位置在模型加载完成后再恢复
+          // 等待所有资源加载完成后再结束加载状态
+          const checkAllLoaded = () => {
+            if (this.loadedResources >= this.totalResources) {
+              this.loading = false;
+              this.loadingProgress = 100;
+              
+              // 完成加载后的初始化（恢复存档、开始音乐等）
+              this.finishLoadingAndInit(saveManager);
+            } else {
+              setTimeout(checkAllLoaded, 100);
             }
-          }
-
-          // 进入游戏后随机 1～10 秒内开始播放，曲目从 playing 里随机选
-          const delayMs = 1000 + Math.random() * 9000;
-          this._musicDelayTimer = setTimeout(() => this.startBgm(), delayMs);
+          };
+          checkAllLoaded();
         },
         (progress) => {
-          this.loadingProgress = (progress.loaded / progress.total) * 100;
+          // 主场景加载中，显示平滑进度（0-70%）
+          if (progress.total > 0) {
+            const sceneProgress = (progress.loaded / progress.total) * 70;
+            if (!this.sceneLoaded) {
+              this.loadingProgress = Math.max(this.loadingProgress, sceneProgress);
+            }
+          }
         }
       );
 
@@ -1322,8 +1729,12 @@ export default {
                 Math.cos(hAngle) * moveDir.z - Math.sin(hAngle) * moveDir.x
               );
 
-              movement.x = finalDir.x * moveSpeed * delta;
-              movement.z = finalDir.z * moveSpeed * delta;
+              // Shift加速奔跑（仅在非飞行模式下）
+              const isSprinting = !this.flyMode && this.keys['shift'];
+              const currentSpeed = isSprinting ? moveSpeed * 1.8 : moveSpeed;
+
+              movement.x = finalDir.x * currentSpeed * delta;
+              movement.z = finalDir.z * currentSpeed * delta;
 
               // 转向（只在方向有效时）
               if (finalDir.lengthSq() > 0.001) {
@@ -1430,8 +1841,11 @@ export default {
         if (this.bloomPass) this.bloomPass.strength = this.bloomStrength;
         if (this.renderer) this.renderer.toneMappingExposure = this.toneMappingExposure;
 
+        // 更新游戏时间
+        this.updateGameTime();
+
         // 根据时间更新太阳位置和光照方向（9~18点）
-        const hour = this.sunTime;
+        const hour = this.gameTime;
         const angle = ((hour - 9) / 9) * Math.PI; // 9点=0, 18点=π
         const sunRadius = 150;
         const sunX = Math.cos(angle) * sunRadius;
@@ -1572,16 +1986,28 @@ export default {
       renderer.domElement.addEventListener('click', this.requestLock);
 
       document.addEventListener('pointerlockchange', () => {
-        // 对话、tips显示、茶道完成或收集界面打开时不自动打开ESC面板
-        if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection) {
+        // AI聊天界面打开时不自动打开ESC面板，但允许正常处理指针状态
+        if (this.showAIChat) {
+          if (document.pointerLockElement === null) {
+            // 指针已释放，不需要额外操作
+            return;
+          }
+        }
+        // 对话、tips显示、茶道完成、收集界面或任务面板打开时不自动打开ESC面板
+        if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection || this.showQuestPanel) {
           this.showSettings = false;
           return;
         }
         const wasLocked = this.showSettings === false && document.pointerLockElement !== null;
-        this.showSettings = document.pointerLockElement === null;
-        if (this.showSettings) {
+        const shouldShowSettings = document.pointerLockElement === null;
+        // 只有当状态真正变化时才更新
+        if (shouldShowSettings && !this.showSettings) {
+          this.showSettings = true;
           this.keys = {}; // 打开面板时清空按键，避免回到游戏时误触
-        } else if (wasLocked) {
+        } else if (!shouldShowSettings && this.showSettings) {
+          this.showSettings = false;
+        }
+        if (!this.showSettings && wasLocked) {
           // ESC面板关闭，重新获得指针锁定时，标记需要跳过第一帧
           this.pointerLockJustActivated = true;
           setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
@@ -1614,7 +2040,38 @@ export default {
 
     setupKeyboard() {
       this.onKeyDown = (e) => {
+        // 尝试启动背景音乐（首次交互时）
+        this.tryStartBgm();
+        
         const key = e.key.toLowerCase();
+
+        // H键打开AI聊天界面（只能通过关闭按钮关闭）
+        if (key === 'h') {
+          if (!this.showAIChat && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showCollection) {
+            // 先退出指针锁定，再显示界面
+            if (document.pointerLockElement) {
+              document.exitPointerLock();
+            }
+            this.showAIChat = true;
+            return;
+          }
+          return;
+        }
+
+        // K键打开/关闭任务面板
+        if (key === 'k') {
+          if (this.showQuestPanel) {
+            this.closeQuestPanel();
+            return;
+          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showCollection) {
+            if (document.pointerLockElement) {
+              document.exitPointerLock();
+            }
+            this.showQuestPanel = true;
+            return;
+          }
+          return;
+        }
 
         // L键打开/关闭收集界面
         if (key === 'l') {
@@ -1622,7 +2079,7 @@ export default {
             // 如果已打开，则关闭
             this.closeCollection();
             return;
-          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
             // 如果未打开且满足条件，则打开
             this.openCollection();
             return;
@@ -1630,7 +2087,25 @@ export default {
           return;
         }
 
-        if (this.showSettings || this.showCollection) return; // ESC面板或收集界面时不响应移动键
+        // P键拍照
+        if (key === 'p') {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+            this.takePhoto();
+            return;
+          }
+          return;
+        }
+
+        // O键打开照片画廊
+        if (key === 'o') {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+            this.openPhotoGallery();
+            return;
+          }
+          return;
+        }
+
+        if (this.showSettings || this.showCollection || this.showAIChat || this.showQuestPanel || this.showPhotoGallery) return; // ESC面板、收集界面、AI聊天或任务面板时不响应移动键
 
         // 交互键F
         if (key === 'f') {
@@ -1678,17 +2153,21 @@ export default {
       window.addEventListener('keydown', this.onKeyDown);
       window.addEventListener('keyup', this.onKeyUp);
 
-      this.onMouseDown = () => { this.isDragging = true; };
+      this.onMouseDown = () => { 
+        this.isDragging = true; 
+        // 尝试启动背景音乐（首次交互时）
+        this.tryStartBgm();
+      };
       this.onMouseUp = () => { this.isDragging = false; };
       this.onMouseMove = (e) => {
         // 直接通过鼠标移动旋转视角，无需拖拽
-        // 对话、临摹、茶道、收集界面或tips显示时禁止视角控制
-        if (this.isInDialogue || this.isInCalligraphy || this.showTeaCeremony || this.showCollection || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
+        // 对话、临摹、茶道、收集界面、AI聊天或tips显示时禁止视角控制
+        if (this.isInDialogue || this.isInCalligraphy || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
         if (document.pointerLockElement) {
           // 跳过指针锁定刚激活时的第一帧移动，避免视角乱跳
           if (this.pointerLockJustActivated) return;
-          this.cameraAngle.horizontal -= e.movementX * 0.002;
-          this.cameraAngle.vertical -= e.movementY * 0.002;
+          this.cameraAngle.horizontal -= e.movementX * 0.0012;
+          this.cameraAngle.vertical -= e.movementY * 0.0012;
           this.cameraAngle.vertical = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.cameraAngle.vertical));
         }
       };
@@ -1707,12 +2186,179 @@ export default {
       // 检查王爷爷当前位置
       const grandpaLocation = this.storyManager.getGrandpaLocation();
 
+      // 检查是否已摘石榴且未完成分享对话（优先级最高）
+      const hasPickedPomegranate = this.storyManager.getFlag('pomegranate_picked');
+      const hasCompletedPomegranateShare = this.storyManager.getFlag('pomegranate_share_completed');
+      if (hasPickedPomegranate && !hasCompletedPomegranateShare) {
+        // 摘石榴后第一次对话，触发分享石榴对话
+        const pomegranateShareDialogue = getPomegranateShareDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(pomegranateShareDialogue, () => {
+          this.isInDialogue = false;
+          // 标记分享石榴对话已完成
+          this.storyManager.setFlag('pomegranate_share_completed', true);
+          // 完成"与王爷爷分享石榴"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_share_pomegranate') {
+            this.questManager.completeCurrentQuest();
+          }
+          // 播放结尾动画
+          this.playEnding();
+        }, { avatarOverride: '/photo/Character2D/oldman.webp' });
+        return;
+      }
+
+      // 检查是否已拾取全家福碎片（碎片对话优先级第二）
+      const hasPickedUpPhotoPiece = this.storyManager.getFlag('interacted_thirdson_photo');
+      const hasCompletedPhotoPieceTalk = this.storyManager.getFlag('photopiece_talk_completed');
+      if (hasPickedUpPhotoPiece && !hasCompletedPhotoPieceTalk) {
+        // 拾取全家福碎片后第一次对话，触发碎片对话
+        const photoPieceDialogue = getPhotoPieceDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(photoPieceDialogue, () => {
+          this.isInDialogue = false;
+          // 标记碎片对话已完成
+          this.storyManager.setFlag('photopiece_talk_completed', true);
+          // 完成"告知王爷爷"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_talk_after_photo_piece') {
+            this.questManager.completeCurrentQuest();
+          }
+          // 触发"摘石榴"任务（在下一个任务循环中）
+          setTimeout(() => {
+            const nextQuest = this.questManager.getCurrentQuest();
+            if (nextQuest && nextQuest.id === 'quest_pick_pomegranate') {
+              // 任务已自动触发
+            }
+          }, 100);
+          // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否已完成碎片对话但未摘石榴（第二次及以后对话）
+      const hasPickedPomegranateFlag = this.storyManager.getFlag('pomegranate_picked');
+      if (hasCompletedPhotoPieceTalk && !hasPickedPomegranateFlag) {
+        // 碎片对话后、摘石榴前的简短提示
+        const shortDialogue = getPhotoPieceShortDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(shortDialogue, () => {
+          this.isInDialogue = false;
+          // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否已拾取钢笔（全家福对话优先级第二）
+      const hasPickedUpPen = this.storyManager.getFlag('interacted_pen');
+      const hasCompletedFamilyPhotoTalk = this.storyManager.getFlag('familyphoto_talk_completed');
+      if (hasPickedUpPen && !hasCompletedFamilyPhotoTalk) {
+        // 拾取钢笔后第一次对话，触发全家福对话
+        const familyPhotoDialogue = getFamilyPhotoDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(familyPhotoDialogue, () => {
+          this.isInDialogue = false;
+          // 标记全家福对话已完成
+          this.storyManager.setFlag('familyphoto_talk_completed', true);
+          // 完成"聊聊全家福"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_talk_about_photo') {
+            this.questManager.completeCurrentQuest();
+          }
+          // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否已完成全家福对话但未找到碎片（第二次及以后对话）
+      const hasFoundPhotoPiece = this.storyManager.getFlag('interacted_thirdson_photo');
+      if (hasCompletedFamilyPhotoTalk && !hasFoundPhotoPiece) {
+        // 全家福对话后、找到碎片前的简短提示
+        const shortDialogue = getFamilyPhotoShortDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(shortDialogue, () => {
+          this.isInDialogue = false;
+          // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否已获得家谱
+      const hasFamilyBook = this.storyManager.getFlag('interacted_familybook');
+      if (hasFamilyBook) {
+        // 检查是否已完成家谱对话
+        const hasCompletedFamilyBookTalk = this.storyManager.getFlag('familybook_talk_completed');
+        if (!hasCompletedFamilyBookTalk) {
+          // 第一次家谱对话，触发完整对话，使用悲伤头像
+          const familyBookDialogue = getFamilyBookDialogue(this.locale);
+          this.isInDialogue = true;
+          this.dialogueSystem.start(familyBookDialogue, () => {
+            this.isInDialogue = false;
+            // 标记家谱对话已完成
+            this.storyManager.setFlag('familybook_talk_completed', true);
+            // 完成"和王爷爷谈论家谱"任务，并自动开始"寻找钢笔"任务
+            const currentQuest = this.questManager.getCurrentQuest();
+            if (currentQuest && currentQuest.id === 'quest_talk_about_family_book') {
+              this.questManager.completeCurrentQuest();
+            }
+            // 设置对话冷却
+            this.dialogueCooldown = true;
+            this.pointerLockJustActivated = true;
+            setTimeout(() => {
+              this.dialogueCooldown = false;
+              this.pointerLockJustActivated = false;
+            }, 200);
+          }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        } else {
+          // 第二次及以后，使用简短提示
+          const shortDialogue = getFamilyBookShortDialogue(this.locale);
+          this.isInDialogue = true;
+          this.dialogueSystem.start(shortDialogue, () => {
+            this.isInDialogue = false;
+            // 设置对话冷却
+            this.dialogueCooldown = true;
+            this.pointerLockJustActivated = true;
+            setTimeout(() => {
+              this.dialogueCooldown = false;
+              this.pointerLockJustActivated = false;
+            }, 200);
+          }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        }
+        return;
+      }
+
       if (grandpaLocation === 'chuihuamen') {
         // 王爷爷在垂花门：使用垂花门对话
         const chuihuaDialogue = getChuihuaDialogue(this.locale);
         this.isInDialogue = true;
         this.dialogueSystem.start(chuihuaDialogue, () => {
           this.isInDialogue = false;
+          // 标记垂花门对话已完成（解锁家谱交互）
+          this.storyManager.setFlag('chuihua_talk_completed', true);
           // 完成"与王爷爷交流"任务
           const currentQuest = this.questManager.getCurrentQuest();
           if (currentQuest && currentQuest.id === 'quest_meet_grandpa_chuihua') {
@@ -1770,6 +2416,134 @@ export default {
       });
 
       // 不再自动触发剧情，改为靠近老爷爷时交互触发
+
+      // 初始化时间系统
+      this.initTimeSystem();
+    },
+
+    // 初始化时间系统
+    initTimeSystem() {
+      if (this.timeFlowEnabled) {
+        // 开启时间流逝
+        this.timeStart = Date.now();
+        console.log('时间系统启动：时间流逝开启');
+      } else {
+        // 固定时间
+        this.timeStart = null;
+        console.log('时间系统：固定时间 ' + this.formatTime(this.gameTime));
+      }
+    },
+
+    // 时间流逝开关切换
+    onTimeFlowToggle() {
+      if (this.timeFlowEnabled) {
+        // 开启时间流逝
+        this.timeStart = Date.now();
+        console.log('时间流逝已开启');
+      } else {
+        // 关闭时间流逝，固定当前时间
+        this.timeStart = null;
+        console.log('时间流逝已关闭，固定为 ' + this.formatTime(this.gameTime));
+      }
+    },
+
+    // 格式化时间显示
+    formatTime(time) {
+      const hours = Math.floor(time);
+      const minutes = Math.floor((time - hours) * 60);
+      return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    },
+
+    // 拍照功能
+    takePhoto() {
+      if (!this.renderer || !this.camera || !this.composer) return;
+      
+      // 触发闪光效果
+      this.showPhotoFlash = true;
+      setTimeout(() => {
+        this.showPhotoFlash = false;
+      }, 150);
+      
+      // 使用 composer 渲染一帧（包含 GTAO 等后期效果）
+      this.composer.render();
+      
+      // 从 WebGL canvas 直接读取数据（composer 已经渲染到屏幕）
+      const canvas = this.renderer.domElement;
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      
+      // 获取当前时间
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+      
+      // 保存到相册
+      this.photoGallery.unshift({
+        dataUrl: dataUrl,
+        time: timeStr,
+        gameTime: this.formatGameTime
+      });
+      
+      // 限制相册数量（最多保存20张）
+      if (this.photoGallery.length > 20) {
+        this.photoGallery.pop();
+      }
+      
+      console.log('📷 拍照成功！已保存到精彩瞬间（包含GTAO效果）');
+    },
+
+    // 打开照片画廊
+    openPhotoGallery() {
+      this.showPhotoGallery = true;
+      this.previewPhoto = null;
+      // 退出指针锁定，显示鼠标
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    },
+
+    // 关闭照片画廊
+    closePhotoGallery() {
+      this.showPhotoGallery = false;
+      this.previewPhoto = null;
+    },
+
+    // 预览照片
+    previewImage(photo) {
+      this.previewPhoto = photo;
+    },
+
+    // 关闭预览
+    closePreview() {
+      this.previewPhoto = null;
+    },
+
+    // 下载照片
+    downloadPhoto(photo) {
+      const link = document.createElement('a');
+      link.download = `四合院_${photo.time.replace(/[\s:]/g, '_')}.png`;
+      link.href = photo.dataUrl;
+      link.click();
+    },
+
+    // 更新游戏时间
+    updateGameTime() {
+      // 如果时间流逝未开启，不更新
+      if (!this.timeFlowEnabled || !this.timeStart) return;
+
+      const elapsed = Date.now() - this.timeStart;
+      // 应用流速倍率
+      const effectiveDuration = this.timeCycleDuration / this.timeSpeedMultiplier;
+      const progress = (elapsed % effectiveDuration) / effectiveDuration;
+
+      // 计算当前时间（9点到18点）
+      const timeRange = this.timeEndHour - this.timeStartHour;
+      this.gameTime = this.timeStartHour + progress * timeRange;
+
+      // 如果完成一个周期，重置时间
+      if (elapsed >= effectiveDuration) {
+        this.timeStart = Date.now();
+        this.gameTime = this.timeStartHour;
+        console.log('时间循环重置：9:00');
+      }
     },
 
     // 初始化任务系统
@@ -1799,20 +2573,30 @@ export default {
       });
     },
 
-    // 初始化收集系统
+    // 初始化收集系统（每局游戏独立，不持久化）
     initCollectionSystem() {
-      this.collectionSystem = new CollectionSystem();
+      this.collectionSystem = new CollectionSystem({ persistent: false });
       this.loadCollectionForCurrentLocale();
-      this.collectionSystem.loadFromStorage();
+      
+      // 如果是继续游戏，立即加载存档中的收集数据
+      if (!this.isNewGame) {
+        const saveData = saveManager.load();
+        if (saveData && saveData.collectionData) {
+          this.collectionSystem.loadSessionData(saveData.collectionData);
+          console.log('初始化时恢复收集物品:', saveData.collectionData);
+        }
+      }
 
       // 监听语言变化
       i18n.onChange((locale) => {
-        this.loadCollectionForCurrentLocale();
+        // 语言变化时只重新加载数据定义，不重置解锁状态
+        const data = getCollectionData(locale);
+        this.collectionSystem.loadCollectionData(data);
       });
 
-      // 监听解锁事件，自动保存
+      // 监听解锁事件（不需要保存到 storage，因为是会话级别）
       this.collectionSystem.on('itemUnlocked', () => {
-        this.collectionSystem.saveToStorage();
+        // 发现日志只在当前游戏会话有效
       });
     },
 
@@ -1834,17 +2618,161 @@ export default {
     // 打开收集界面
     openCollection() {
       if (this.collectionSystem) {
+        // 确保收集数据已加载
+        if (!this.collectionSystem.collectionData) {
+          this.loadCollectionForCurrentLocale();
+        }
         this.showCollection = true;
         // 释放鼠标锁定
         if (document.pointerLockElement) {
           document.exitPointerLock();
         }
+      } else {
+        console.warn('收集系统未初始化');
       }
     },
 
     // 关闭收集界面
     closeCollection() {
       this.showCollection = false;
+    },
+
+    closeAIChat() {
+      this.showAIChat = false;
+    },
+
+    // 关闭任务面板
+    closeQuestPanel() {
+      this.showQuestPanel = false;
+    },
+
+    // 播放结尾动画
+    playEnding() {
+      // 设置结尾文字
+      this.endingTexts = this.locale === 'zh' ? [
+        '石榴树又开花了。',
+        '王爷爷说，等石榴熟了，要留给三舅尝尝。',
+        '门一直开着。',
+        '等他们回来。'
+      ] : [
+        'The pomegranate tree is blooming again.',
+        'Grandpa Wang said, when the pomegranates are ripe, leave some for the third uncle.',
+        'The door remains open.',
+        'Waiting for them to return.'
+      ];
+      this.endingTextIndex = -1;
+      this.showEnding = true;
+      
+      // 逐行显示文字
+      const showNextLine = () => {
+        if (this.endingTextIndex < this.endingTexts.length - 1) {
+          this.endingTextIndex++;
+          setTimeout(showNextLine, 3000); // 每3秒显示下一行
+        } else {
+          // 最后一行显示后，等待一段时间然后继续游戏
+          setTimeout(() => {
+            this.showEnding = false;
+            // 更新任务为"尽情探索四合院"
+            const currentQuest = this.questManager.getCurrentQuest();
+            if (currentQuest) {
+              this.questManager.completeCurrentQuest();
+            }
+            // 重新锁定鼠标，继续游戏
+            this.requestLock();
+          }, 5000);
+        }
+      };
+      
+      // 延迟开始显示第一行
+      setTimeout(showNextLine, 1000);
+    },
+
+    // 更新加载进度
+    updateLoadingProgress() {
+      this.loadedResources++;
+      // 主场景占70%，其他资源占30%
+      const otherProgress = (this.loadedResources / (this.totalResources - 1)) * 30;
+      this.loadingProgress = Math.min(100, 70 + otherProgress);
+    },
+
+    // 加载完成后初始化
+    finishLoadingAndInit(saveManager) {
+      // 如果不是新游戏，恢复玩家位置、剧情进度并跳过剧情介绍
+      if (!this.isNewGame) {
+        this.introCompleted = true;
+        // 恢复玩家位置（在模型加载完成后）
+        const saveData = saveManager.load();
+        if (saveData) {
+          // 恢复玩家位置
+          if (saveData.playerPosition) {
+            this.player.position.set(
+              saveData.playerPosition.x,
+              saveData.playerPosition.y,
+              saveData.playerPosition.z
+            );
+            this.playerBody.setTranslation({
+              x: saveData.playerPosition.x,
+              y: saveData.playerPosition.y,
+              z: saveData.playerPosition.z
+            }, true);
+            this.playerPos = { ...saveData.playerPosition };
+          }
+          // 恢复剧情进度（storyFlags）
+          if (saveData.storyFlags) {
+            this.storyManager.loadFlags(saveData.storyFlags);
+          }
+          // 恢复收集物品（当前游戏会话）
+          if (saveData.collectionData && this.collectionSystem) {
+            // 确保收集数据定义已加载后再恢复解锁状态
+            if (!this.collectionSystem.collectionData) {
+              this.loadCollectionForCurrentLocale();
+            }
+            this.collectionSystem.loadSessionData(saveData.collectionData);
+            console.log('恢复收集物品:', saveData.collectionData);
+          }
+          // 注意：王爷爷位置在模型加载完成后再恢复
+        }
+      }
+
+      // 预加载常用图片资源
+      this.preloadImages();
+
+      // 等待用户首次交互后再播放音乐（浏览器自动播放策略）
+      this._pendingBgmStart = true;
+    },
+
+    // 预加载图片资源
+    preloadImages() {
+      const imagesToPreload = [
+        '/photo/chatbox.webp',
+        '/photo/tips.webp',
+        '/photo/Character2D/me.webp',
+        '/photo/Character2D/me_sad.webp',
+        '/photo/Character2D/oldman.webp',
+        '/photo/Character2D/oldman_sad.webp',
+        '/photo/Character2D/oldwoman.webp',
+        '/photo/Character2D/thirdson.webp',
+        '/photo/Collection/Book.png',
+        '/photo/Collection/Fan.png',
+        '/photo/Collection/Jianzi.png',
+        '/photo/Collection/Landdeed.png'
+      ];
+      
+      imagesToPreload.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    },
+
+    // 尝试播放背景音乐（需要用户交互后才能播放）
+    tryStartBgm() {
+      if (this._pendingBgmStart && !this._bgmStarted) {
+        this._bgmStarted = true;
+        this._pendingBgmStart = false;
+        // 随机 0.5～2 秒后开始播放
+        const delayMs = 500 + Math.random() * 1500;
+        this._musicDelayTimer = setTimeout(() => this.startBgm(), delayMs);
+      }
     },
 
     // 加载当前语言的剧情
@@ -1925,15 +2853,15 @@ export default {
 
       // 大门区域
       if (x >= -27 && x <= -14 && z >= -38 && z <= -22) {
-        locationImage = this.locale === 'en' ? '/photo/place/en/MainGate.png' : '/photo/place/zh/damen.png';
+        locationImage = this.locale === 'en' ? '/photo/place/en/MainGate.webp' : '/photo/place/zh/damen.webp';
       }
       // 入院小径区域
       else if (x >= -28 && x <= 43 && z >= -21 && z <= -9) {
-        locationImage = this.locale === 'en' ? '/photo/place/en/GardenPath.png' : '/photo/place/zh/ruyuanxiaojing.png';
+        locationImage = this.locale === 'en' ? '/photo/place/en/GardenPath.webp' : '/photo/place/zh/ruyuanxiaojing.webp';
       }
       // 内院区域
       else if (x >= -19 && x <= 20 && z >= -5 && z <= 41) {
-        locationImage = this.locale === 'en' ? '/photo/place/en/InnerCourtyard.png' : '/photo/place/zh/neiyuan.png';
+        locationImage = this.locale === 'en' ? '/photo/place/en/InnerCourtyard.webp' : '/photo/place/zh/neiyuan.webp';
       }
 
       // 位置变化时触发渐出渐入效果
@@ -1995,6 +2923,16 @@ export default {
         this.handleFamilyBookInteract();
       } else if (this.currentInteraction.id === 'taohe') {
         this.handleTaoheInteract();
+      } else if (this.currentInteraction.id === 'pen') {
+        this.handlePenInteract();
+      } else if (this.currentInteraction.id === 'thirdson_photo') {
+        this.handleThirdSonPhotoInteract();
+      } else if (this.currentInteraction.id === 'jianzi') {
+        this.handleJianziInteract();
+      } else if (this.currentInteraction.id === 'diqi') {
+        this.handleDiqiInteract();
+      } else if (this.currentInteraction.id === 'fan') {
+        this.handleFanInteract();
       }
     },
 
@@ -2064,6 +3002,16 @@ export default {
         if (oldmanPoint) {
           oldmanPoint.position = { x: -2, y: 14.0, z: -36 };
         }
+      } else if (location === 'mainhouse') {
+        // 王爷爷在正房
+        if (this.oldman) {
+          this.oldman.position.set(4, 15.6, 50);
+        }
+        // 更新交互点位置到正房
+        const oldmanPoint = interactionPoints.find(p => p.id === 'oldman');
+        if (oldmanPoint) {
+          oldmanPoint.position = { x: 4, y: 15.7, z: 50 };
+        }
       }
     },
 
@@ -2113,13 +3061,37 @@ export default {
     // 处理石榴树交互
     handlePomegranateInteract() {
       if (this.dialogueSystem.isTipsShowing()) return;
-      // 解锁收集物
-      this.unlockCollectionItem('pomegranate');
-      const tipsText = getTipsText(this.locale, 'pomegranate');
-      this.dialogueSystem.showTips(tipsText, () => {
-        this.pointerLockJustActivated = true;
-        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-      });
+      
+      // 检查是否是任务触发的交互
+      const currentQuest = this.questManager.getCurrentQuest();
+      if (currentQuest && currentQuest.id === 'quest_pick_pomegranate') {
+        // 完成任务并触发下一个任务
+        this.questManager.completeCurrentQuest();
+        // 设置flag表示已经摘了石榴
+        this.storyManager.setFlag('pomegranate_picked', true);
+        
+        const tipsText = '你摘了四个石榴，红彤彤的，看起来很甜。';
+        this.dialogueSystem.showTips(tipsText, () => {
+          this.pointerLockJustActivated = true;
+          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        });
+        
+        // 触发"把石榴带给王爷爷"任务
+        setTimeout(() => {
+          const nextQuest = this.questManager.getCurrentQuest();
+          if (nextQuest && nextQuest.id === 'quest_share_pomegranate') {
+            // 任务已自动触发
+          }
+        }, 100);
+      } else {
+        // 普通交互，显示tips
+        this.unlockCollectionItem('pomegranate');
+        const tipsText = getTipsText(this.locale, 'pomegranate');
+        this.dialogueSystem.showTips(tipsText, () => {
+          this.pointerLockJustActivated = true;
+          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        });
+      }
     },
 
     // 处理海棠树交互
@@ -2128,6 +3100,119 @@ export default {
       // 解锁收集物
       this.unlockCollectionItem('taohe');
       const tipsText = getTipsText(this.locale, 'taohe');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理钢笔交互
+    // 创建钢笔高亮描边
+    createPenOutline() {
+      if (!this.pen) return;
+      // 创建描边组
+      this.penOutline = new THREE.Group();
+      this.penOutline.position.copy(this.pen.position);
+      this.penOutline.rotation.copy(this.pen.rotation);
+      this.penOutline.scale.copy(this.pen.scale);
+      // 创建描边材质
+      const outlineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffd700, // 金色
+        side: THREE.BackSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      this.pen.traverse((child) => {
+        if (child.isMesh) {
+          const outlineMesh = new THREE.Mesh(child.geometry, outlineMaterial);
+          outlineMesh.scale.multiplyScalar(1.05);
+          outlineMesh.position.copy(child.position);
+          outlineMesh.rotation.copy(child.rotation);
+          this.penOutline.add(outlineMesh);
+        }
+      });
+      // 将描边添加到场景
+      this.pen.parent.add(this.penOutline);
+    },
+
+    handlePenInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 标记已交互（使交互点消失）
+      this.storyManager.setFlag('interacted_pen', true);
+      // 解锁收集物
+      this.unlockCollectionItem('pen');
+      // 显示提示（从storyData获取）
+      const tipsText = getTipsText(this.locale, 'pen');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // 隐藏钢笔模型和描边
+        if (this.pen) {
+          this.pen.visible = false;
+        }
+        if (this.penOutline) {
+          this.penOutline.visible = false;
+        }
+        // 完成"寻找钢笔"任务，自动开始"聊聊全家福"任务
+        const currentQuest = this.questManager.getCurrentQuest();
+        if (currentQuest && currentQuest.id === 'quest_find_pen') {
+          this.questManager.completeCurrentQuest();
+        }
+      });
+    },
+
+    // 处理全家福碎片交互
+    handleThirdSonPhotoInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 标记已交互（使交互点消失）
+      this.storyManager.setFlag('interacted_thirdson_photo', true);
+      // 显示提示
+      const tipsText = getTipsText(this.locale, 'thirdson_photo');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+        // 隐藏照片
+        if (this.thirdSonPhoto) {
+          this.thirdSonPhoto.visible = false;
+        }
+        // 完成"寻找全家福碎片"任务
+        const currentQuest = this.questManager.getCurrentQuest();
+        if (currentQuest && currentQuest.id === 'quest_find_photo_piece') {
+          this.questManager.completeCurrentQuest();
+        }
+      });
+    },
+
+    // 处理毽子交互
+    handleJianziInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('jianzi');
+      const tipsText = getTipsText(this.locale, 'jianzi');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理地契交互
+    handleDiqiInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物（使用 landdeed 作为 interactionId）
+      this.unlockCollectionItem('landdeed');
+      const tipsText = getTipsText(this.locale, 'diqi');
+      this.dialogueSystem.showTips(tipsText, () => {
+        this.pointerLockJustActivated = true;
+        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
+      });
+    },
+
+    // 处理折扇交互
+    handleFanInteract() {
+      if (this.dialogueSystem.isTipsShowing()) return;
+      // 解锁收集物
+      this.unlockCollectionItem('fan');
+      const tipsText = getTipsText(this.locale, 'fan');
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
@@ -2327,6 +3412,9 @@ export default {
         if (currentQuest && currentQuest.id === 'quest_explore_courtyard') {
           this.questManager.completeCurrentQuest();
         }
+        // 将王爷爷传送到正房
+        this.storyManager.setFlag('grandpa_location', 'mainhouse');
+        this.updateGrandpaPosition();
       });
     },
 
@@ -2498,14 +3586,411 @@ export default {
   position: absolute;
   top: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #00ff00;
-  padding: 10px;
-  border-radius: 5px;
-  font-family: monospace;
-  font-size: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 20px;
   pointer-events: none;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 左上角时间卡片 - 正方形毛玻璃风格 */
+.time-card {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  width: 60px;
+  height: 60px;
+}
+
+.time-card .time-period {
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.time-card .time-value {
+  color: #fff;
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+}
+
+/* 拍照功能样式 */
+.photo-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 9999;
+  animation: flash 0.15s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 0; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.photo-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.photo-btn:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.photo-btn:active {
+  transform: scale(0.95);
+}
+
+/* 照片画廊 */
+.photo-gallery-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.photo-gallery-panel {
+  width: 900px;
+  height: 600px;
+  background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d0 100%);
+  border-radius: 20px;
+  padding: 30px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid #d4c4a8;
+}
+
+.gallery-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  background: rgba(139, 90, 43, 0.9);
+  border: 2px solid #d4c4a8;
+  border-radius: 50%;
+  color: #f5e6c8;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.gallery-close-btn:hover {
+  background: rgba(180, 60, 60, 0.95);
+}
+
+.gallery-title {
+  color: #5a3d2b;
+  font-size: 28px;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: min-content;
+  gap: 15px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 10px;
+  align-content: start;
+}
+
+.gallery-item {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.3s;
+  border: 1px solid #d4c4a8;
+}
+
+.gallery-item:hover {
+  transform: scale(1.02);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.gallery-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.gallery-info {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gallery-time {
+  color: #5a3d2b;
+  font-size: 12px;
+}
+
+.gallery-download-btn {
+  padding: 5px 12px;
+  background: rgba(139, 90, 43, 0.9);
+  border: 1px solid #d4c4a8;
+  border-radius: 4px;
+  color: #f5e6c8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.gallery-download-btn:hover {
+  background: rgba(180, 140, 80, 0.95);
+}
+
+.gallery-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #5a3d2b;
+  padding: 60px;
+  font-size: 16px;
+}
+
+/* 照片预览大图 */
+.photo-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.photo-preview-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-close-btn {
+  position: absolute;
+  top: -50px;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: rgba(139, 90, 43, 0.9);
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  border-radius: 50%;
+  color: #f5e6c8;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  z-index: 10;
+}
+
+.preview-close-btn:hover {
+  background: rgba(180, 60, 60, 0.9);
+  transform: scale(1.1);
+}
+
+.preview-image {
+  max-width: 85vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.preview-info {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.preview-time {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.preview-download-btn {
+  padding: 8px 20px;
+  background: rgba(139, 90, 43, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 6px;
+  color: #f5e6c8;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.preview-download-btn:hover {
+  background: rgba(180, 140, 80, 0.9);
+}
+
+/* 左上角时间显示 - 清新简约风格 */
+.time-display {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 20px;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.time-period {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.time-value {
+  color: rgba(255, 255, 255, 1);
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 结尾动画 */
+.ending-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeToBlack 2s ease forwards;
+}
+
+@keyframes fadeToBlack {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ending-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.ending-text {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 400;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  letter-spacing: 2px;
+  line-height: 1.8;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 1s ease;
+  margin: 20px 0;
+}
+
+.ending-text.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .footer-text {
@@ -2560,18 +4045,65 @@ export default {
   }
 }
 
-.settings-overlay {
+/* AI 小助手提示 - 右下角 */
+/* 键位提示 - 右下角 */
+.key-hints {
   position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.key-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.key-badge {
+  background: linear-gradient(180deg, #f5e6c8 0%, #e8d4a8 100%);
+  color: #5a3d2b;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 2px solid #8b6f47;
+  box-shadow: 0 2px 0 #6b5537;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-width: 24px;
+  text-align: center;
+}
+
+.key-desc {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.settings-overlay {
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
   backdrop-filter: blur(15px);
+  cursor: default;
 }
 
 .settings-panel {
@@ -2639,6 +4171,24 @@ export default {
   height: 6px;
   accent-color: #5a9eff;
   cursor: pointer;
+}
+
+.setting-hint {
+  display: block;
+  color: #888;
+  font-size: 12px;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* 禁用状态的设置项 */
+.settings-group.setting-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.settings-group.setting-disabled input[type="range"] {
+  cursor: not-allowed;
 }
 
 .settings-btn {
@@ -2802,7 +4352,7 @@ export default {
 .interaction-bg {
   width: 200px;
   height: 60px;
-  background-image: url('/photo/interaction.png');
+  background-image: url('/photo/interaction.webp');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;

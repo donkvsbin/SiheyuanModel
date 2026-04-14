@@ -2,8 +2,10 @@
  * 收集系统管理器 - 管理发现日志/收集物
  */
 export class CollectionSystem {
-    constructor() {
-        this.unlockedItems = new Set();
+    constructor(options = {}) {
+        // 是否持久化到 localStorage（默认 false，每局游戏独立）
+        this.persistent = options.persistent ?? false;
+        this._unlockedItems = new Set();
         this.eventCallbacks = {};
         this.collectionData = null;
     }
@@ -19,8 +21,8 @@ export class CollectionSystem {
      * 解锁收集物
      */
     unlockItem(itemId) {
-        if (!this.unlockedItems.has(itemId)) {
-            this.unlockedItems.add(itemId);
+        if (!this._unlockedItems.has(itemId)) {
+            this._unlockedItems.add(itemId);
             this.emit('itemUnlocked', itemId);
             return true;
         }
@@ -31,7 +33,14 @@ export class CollectionSystem {
      * 检查收集物是否已解锁
      */
     isUnlocked(itemId) {
-        return this.unlockedItems.has(itemId);
+        return this._unlockedItems.has(itemId);
+    }
+
+    /**
+     * 获取已解锁物品的 ID 列表（用于兼容外部组件）
+     */
+    get unlockedItemIds() {
+        return Array.from(this._unlockedItems);
     }
 
     /**
@@ -47,7 +56,7 @@ export class CollectionSystem {
      */
     getUnlockedItems() {
         const allItems = this.getAllItems();
-        return allItems.filter(item => this.unlockedItems.has(item.id));
+        return allItems.filter(item => this._unlockedItems.has(item.id));
     }
 
     /**
@@ -64,7 +73,7 @@ export class CollectionSystem {
     getProgress() {
         const allItems = this.getAllItems();
         if (allItems.length === 0) return { unlocked: 0, total: 0, percentage: 0 };
-        const unlocked = this.unlockedItems.size;
+        const unlocked = this._unlockedItems.size;
         return {
             unlocked,
             total: allItems.length,
@@ -101,23 +110,25 @@ export class CollectionSystem {
     }
 
     /**
-     * 保存到本地存储
+     * 保存到本地存储（仅在 persistent 模式下）
      */
     saveToStorage() {
+        if (!this.persistent) return;
         const data = {
-            unlockedItems: Array.from(this.unlockedItems)
+            unlockedItems: Array.from(this._unlockedItems)
         };
         localStorage.setItem('siheyuan_collection', JSON.stringify(data));
     }
 
     /**
-     * 从本地存储加载
+     * 从本地存储加载（仅在 persistent 模式下）
      */
     loadFromStorage() {
+        if (!this.persistent) return;
         try {
             const data = JSON.parse(localStorage.getItem('siheyuan_collection'));
             if (data && data.unlockedItems) {
-                this.unlockedItems = new Set(data.unlockedItems);
+                this._unlockedItems = new Set(data.unlockedItems);
             }
         } catch (e) {
             console.warn('加载收集数据失败:', e);
@@ -128,8 +139,28 @@ export class CollectionSystem {
      * 重置收集进度
      */
     reset() {
-        this.unlockedItems.clear();
-        this.saveToStorage();
+        this._unlockedItems.clear();
+        if (this.persistent) {
+            this.saveToStorage();
+        }
+    }
+
+    /**
+     * 获取当前会话的解锁状态（用于存档）
+     */
+    getSessionData() {
+        return {
+            unlockedItems: Array.from(this._unlockedItems)
+        };
+    }
+
+    /**
+     * 加载会话数据（用于读档）
+     */
+    loadSessionData(data) {
+        if (data && data.unlockedItems) {
+            this._unlockedItems = new Set(data.unlockedItems);
+        }
     }
 }
 

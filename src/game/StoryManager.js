@@ -117,9 +117,15 @@ export class StoryManager {
 
     /**
      * 检查条件是否满足
+     * condition 可以是字符串（flag名称，检查是否为true）或对象 { flag, value }
      */
     checkCondition(condition) {
         if (!condition) return true;
+        // 字符串格式：直接作为flag名称检查是否为true
+        if (typeof condition === 'string') {
+            return this.getFlag(condition) === true;
+        }
+        // 对象格式：检查指定flag是否等于指定值
         if (condition.flag) {
             return this.getFlag(condition.flag) === condition.value;
         }
@@ -144,9 +150,14 @@ export class StoryManager {
 
     /**
      * 获取王爷爷当前位置
-     * 返回: 'gate' (大门) 或 'chuihuamen' (垂花门) 或 null (隐藏)
+     * 返回: 'gate' (大门) 或 'chuihuamen' (垂花门) 或 'mainhouse' (正房) 或 null (隐藏)
      */
     getGrandpaLocation() {
+        // 如果已设置特定位置标志，优先返回
+        const locationFlag = this.getFlag('grandpa_location');
+        if (locationFlag) {
+            return locationFlag;
+        }
         // 如果已完成门槛交互，王爷爷移动到垂花门
         if (this.getFlag('threshold_interacted')) {
             return 'chuihuamen';

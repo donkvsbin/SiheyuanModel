@@ -1,67 +1,57 @@
 <template>
-  <div class="start-menu">
-    <img src="/photo/cover.png" class="background-image" alt="四合院虚拟现实游戏" />
+  <div class="start-menu" :class="{ 'loaded': pageLoaded }">
+    <!-- 优先加载 WebP，不支持则回退到 PNG -->
+    <picture>
+      <source srcset="/photo/cover.webp" type="image/webp">
+      <img src="/photo/cover.png" class="background-image" alt="四合院虚拟现实游戏" @load="onImageLoad" />
+    </picture>
     
-    <div class="title">
-      <img src="/photo/font.png" class="title-image" alt="四合院虚拟现实游戏" />
-    </div>
-
-    <div class="button-left">
+    <div class="button-main">
       <button class="btn-main" @click="startNewGame">
         <span class="btn-text-main">{{ t('newGame') }}</span>
       </button>
-    </div>
-
-    <div class="button-right">
       <button class="btn-main" :class="{ disabled: !hasSave }" @click="continueGame" :disabled="!hasSave">
         <span class="btn-text-main">{{ t('continueGame') }}</span>
       </button>
-    </div>
-
-    <div class="button-bottom">
-      <button class="btn-icon" @click="settings">
-        <span class="icon">⚙</span>
-        <span class="btn-small-text">{{ t('settings') }}</span>
-      </button>
-      
-      <button class="btn-icon" @click="about">
-        <span class="icon">ⓘ</span>
-        <span class="btn-small-text">{{ t('about') }}</span>
-      </button>
-      
-      <button class="btn-icon" @click="exit">
-        <span class="icon">🚪</span>
-        <span class="btn-small-text">{{ t('exit') }}</span>
-      </button>
-      
-      <button class="btn-icon" @click="help">
-        <span class="icon">❓</span>
-        <span class="btn-small-text">{{ t('help') }}</span>
-      </button>
-
-      <button class="btn-icon lang-btn" @click="toggleLanguage">
-        <span class="icon">🌐</span>
-        <span class="btn-small-text">{{ locale === 'zh' ? 'EN' : '中' }}</span>
+      <button class="btn-main btn-guide" @click="viewGuide">
+        <span class="btn-text-main">{{ t('gameGuide') }}</span>
       </button>
     </div>
+
+    <button class="lang-switch-btn" @click="toggleLanguage">
+      {{ locale === 'zh' ? 'English' : '中文' }}
+    </button>
 
     <div v-if="showGuide" class="modal-overlay" @click="closeGuide">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content guide-modal" @click.stop>
         <h2>{{ t('guideTitle') }}</h2>
         <div class="guide-text">
-          <p><strong>{{ t('controls') }}</strong></p>
-          <ul>
-            <li>{{ t('wasd') }}</li>
-            <li>{{ t('mouse') }}</li>
-            <li>{{ t('space') }}</li>
-            <li>{{ t('flyMode') }}</li>
-            <li>{{ t('flyControls') }}</li>
-          </ul>
-          <p><strong>{{ t('otherOps') }}</strong></p>
-          <ul>
-            <li>{{ t('escMenu') }}</li>
-            <li>{{ t('clickLock') }}</li>
-          </ul>
+          <div class="guide-section">
+            <p class="section-title"><strong>{{ t('movementControls') }}</strong></p>
+            <ul>
+              <li><span class="key">W/A/S/D</span> {{ t('wasd') }}</li>
+              <li><span class="key">鼠标</span> {{ t('mouse') }}</li>
+              <li><span class="key">空格</span> {{ t('space') }}</li>
+              <li><span class="key">Shift</span> {{ t('sprint') }}</li>
+            </ul>
+          </div>
+          <div class="guide-section">
+            <p class="section-title"><strong>{{ t('interactionControls') }}</strong></p>
+            <ul>
+              <li><span class="key">F</span> {{ t('interact') }}</li>
+              <li><span class="key">K</span> {{ t('questPanel') }}</li>
+              <li><span class="key">L</span> {{ t('collectionLog') }}</li>
+              <li><span class="key">H</span> {{ t('aiChat') }}</li>
+            </ul>
+          </div>
+          <div class="guide-section">
+            <p class="section-title"><strong>{{ t('systemControls') }}</strong></p>
+            <ul>
+              <li><span class="key">ESC</span> {{ t('escMenu') }}</li>
+              <li><span class="key">G</span> {{ t('flyMode') }}</li>
+              <li><span class="key">点击</span> {{ t('clickLock') }}</li>
+            </ul>
+          </div>
         </div>
         <button class="btn-close" @click="closeGuide">{{ t('close') }}</button>
       </div>
@@ -71,10 +61,7 @@
       <div class="modal-content" @click.stop>
         <h2>{{ t('aboutTitle') }}</h2>
         <div class="about-text">
-          <p><strong>{{ t('appName') }}</strong></p>
-          <p>{{ t('subtitle') }}</p>
-          <p style="margin-top: 20px;">{{ t('tech') }}</p>
-          <p>{{ t('author') }}</p>
+          <p>{{ t('aboutDesc') }}</p>
         </div>
         <button class="btn-close" @click="closeAbout">{{ t('close') }}</button>
       </div>
@@ -111,6 +98,7 @@ export default {
       showGuide: false,
       showAbout: false,
       showSettings: false,
+      pageLoaded: false,
       locale: i18n.getLocale(),
       hasSave: false
     };
@@ -124,6 +112,12 @@ export default {
     }
   },
   methods: {
+    onImageLoad() {
+      // 图片加载完成后触发入场动画
+      setTimeout(() => {
+        this.pageLoaded = true;
+      }, 100);
+    },
     checkSave() {
       const saveData = localStorage.getItem('siheyuan-save');
       this.hasSave = !!saveData;
@@ -180,6 +174,7 @@ export default {
   overflow: hidden;
 }
 
+/* 背景图片入场动画 */
 .background-image {
   position: absolute;
   top: 0;
@@ -188,6 +183,14 @@ export default {
   height: 100%;
   object-fit: cover;
   z-index: 1;
+  opacity: 0;
+  transform: scale(1.1);
+  transition: opacity 2.5s ease, transform 3s ease;
+}
+
+.start-menu.loaded .background-image {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .title {
@@ -205,27 +208,49 @@ export default {
   filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
 }
 
-.button-left {
+.button-main {
   position: absolute;
-  bottom: 200px;
-  left: 300px;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.button-right {
-  position: absolute;
-  bottom: 200px;
-  right: 280px;
-  z-index: 10;
+/* 按钮入场动画 */
+.btn-main {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 1.2s ease, transform 1.2s ease, all 0.15s;
+}
+
+.start-menu.loaded .btn-main:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.8s;
+}
+
+.start-menu.loaded .btn-main:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 1.1s;
+}
+
+.start-menu.loaded .btn-main:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 1.4s;
 }
 
 .btn-main {
-  width: 340px;
-  height: 90px;
-  background: linear-gradient(180deg, #d49a5a 0%, #b87533 45%, #8a4b16 100%);
-  border: 5px solid #5b2e0b;
-  border-radius: 20px;
-  box-shadow: 0 10px 0 #4a2508, 0 16px 24px rgba(0,0,0,0.55);
+  width: 320px;
+  height: 70px;
+  background: linear-gradient(180deg, #f5e6c8 0%, #e8d4a8 100%);
+  border: 4px solid #8b6f47;
+  border-radius: 12px;
+  box-shadow: 0 6px 0 #6b5537, 0 8px 16px rgba(0,0,0,0.4);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -238,36 +263,25 @@ export default {
 }
 
 .btn-main:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 13px 0 #4a2508, 0 20px 28px rgba(0,0,0,0.65);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 #6b5537, 0 12px 20px rgba(0,0,0,0.5);
 }
 
 .btn-main:active {
-  transform: translateY(3px);
-  box-shadow: 0 5px 0 #3a1a06, 0 8px 14px rgba(0,0,0,0.45);
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #5a4528, 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .btn-main.disabled {
-  background: linear-gradient(180deg, #888 0%, #666 45%, #555 100%);
-  border-color: #444;
+  background: linear-gradient(180deg, #c4b8a0 0%, #a89880 100%);
+  border-color: #7a6a52;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 .btn-main.disabled:hover {
   transform: none;
-  box-shadow: 0 10px 0 #4a2508, 0 16px 24px rgba(0,0,0,0.55);
-}
-
-.btn-main::before {
-  content: '';
-  position: absolute;
-  inset: 5px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05));
-  mix-blend-mode: soft-light;
-  opacity: 0.85;
-  pointer-events: none;
+  box-shadow: 0 6px 0 #6b5537, 0 8px 16px rgba(0,0,0,0.4);
 }
 
 .btn-text-zh {
@@ -287,16 +301,6 @@ export default {
   text-shadow: 2px 2px 0 rgba(0,0,0,0.6);
   font-family: Arial, sans-serif;
   letter-spacing: 1px;
-}
-
-.button-bottom {
-  position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 30px;
-  z-index: 10;
 }
 
 .btn-icon {
@@ -350,13 +354,51 @@ export default {
 }
 
 .btn-text-main {
-  font-size: 32px;
-  font-weight: 900;
-  color: white;
-  text-shadow: 3px 3px 0 rgba(0,0,0,0.7),
-               0 0 6px rgba(0,0,0,0.6);
+  font-size: 28px;
+  font-weight: 700;
+  color: #5a3d2b;
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  letter-spacing: 4px;
+}
+
+.lang-switch-btn {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  padding: 12px 24px;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 1.2s ease, transform 1.2s ease, all 0.15s;
+}
+
+.start-menu.loaded .lang-switch-btn {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 1.8s;
+}
+
+.lang-switch-btn {
+  background: linear-gradient(180deg, #f5e6c8 0%, #e8d4a8 100%);
+  border: 3px solid #8b6f47;
+  border-radius: 10px;
+  box-shadow: 0 4px 0 #6b5537, 0 6px 12px rgba(0,0,0,0.4);
+  color: #5a3d2b;
+  font-size: 16px;
+  font-weight: 700;
   font-family: 'Microsoft YaHei', Arial, sans-serif;
   letter-spacing: 2px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.lang-switch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #6b5537, 0 10px 16px rgba(0,0,0,0.5);
+}
+
+.lang-switch-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #5a4528, 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .lang-btn {
@@ -434,6 +476,47 @@ export default {
   margin-bottom: 24px;
 }
 
+.guide-modal {
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.guide-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  color: #ff9933;
+  font-size: 18px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 153, 51, 0.3);
+  padding-bottom: 5px;
+}
+
+.guide-text .key {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 2px 10px;
+  margin-right: 8px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #ffcc66;
+  min-width: 50px;
+  text-align: center;
+}
+
+.btn-guide {
+  background: linear-gradient(180deg, #6b8e6b 0%, #4a6a4a 100%);
+  border-color: #3a5a3a;
+}
+
+.btn-guide:hover {
+  background: linear-gradient(180deg, #7b9e7b 0%, #5a7a5a 100%);
+}
+
 .guide-text ul, .about-text ul {
   list-style: none;
   padding-left: 0;
@@ -474,15 +557,9 @@ export default {
   .title-image {
     width: 100vw;
   }
-  .button-left, .button-right {
+  .button-main {
     left: 50%;
-    right: auto;
     transform: translateX(-50%);
-  }
-  .button-left {
-    bottom: 320px;
-  }
-  .button-right {
     bottom: 180px;
   }
   .btn-main {

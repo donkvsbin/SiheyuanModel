@@ -3,7 +3,7 @@
     <!-- 游戏介绍页面 -->
     <div class="tea-intro-panel" v-if="showIntro">
       <div class="intro-image">
-        <img src="/photo/Games/teaStart.png" alt="Tea Ceremony" />
+        <img src="/photo/Games/teaStart.webp" alt="Tea Ceremony" />
       </div>
       <div class="intro-content">
         <h2 class="intro-title">{{ locale === 'zh' ? '茶道体验' : 'Tea Ceremony' }}</h2>

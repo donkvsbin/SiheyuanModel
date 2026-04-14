@@ -5,44 +5,66 @@
       <button class="close-btn-corner" @click="close">×</button>
       
       <!-- 标题 - 正上方 -->
-      <h2 class="collection-title-top">{{ t('collectionTitle') }}</h2>
+      <h2 class="collection-title-top">{{ t('encyclopediaTitle') }}</h2>
 
-      <!-- 内容区 -->
+      <!-- 内容区 - 左右布局 -->
       <div class="collection-content">
-        <div class="items-grid">
+        <!-- 左侧：地点列表 -->
+        <div class="location-list">
           <div
-            v-for="item in allItems"
+            v-for="item in locationItems"
             :key="item.id"
-            class="item-card"
-            :class="{ unlocked: isUnlocked(item.id), locked: !isUnlocked(item.id) }"
+            class="location-item"
+            :class="{ 
+              active: selectedItem && selectedItem.id === item.id,
+              unlocked: isUnlocked(item.id), 
+              locked: !isUnlocked(item.id) 
+            }"
             @click="selectItem(item)"
           >
-            <div class="item-image-wrapper">
+            <div class="location-thumb">
               <img 
                 v-if="item.image" 
                 :src="item.image" 
-                class="item-image"
+                class="thumb-image"
                 :class="{ silhouette: !isUnlocked(item.id) }"
               />
-              <div v-else class="item-icon-fallback">{{ isUnlocked(item.id) ? item.icon : '?' }}</div>
+              <div v-else class="thumb-icon">{{ isUnlocked(item.id) ? item.icon : '?' }}</div>
             </div>
-            <div class="item-name">{{ item.name }}</div>
+            <div class="location-name">{{ item.name }}</div>
+            <div class="location-status">
+              <span v-if="isUnlocked(item.id)" class="status-unlocked">✓</span>
+              <span v-else class="status-locked">🔒</span>
+            </div>
           </div>
         </div>
 
-        <!-- 选中物品详情 -->
-        <div v-if="selectedItem && isUnlocked(selectedItem.id)" class="item-detail">
-          <h3 class="detail-title">{{ selectedItem.name }}</h3>
-          <div class="detail-icon">{{ selectedItem.icon }}</div>
-          <p class="detail-description">{{ selectedItem.description }}</p>
-          <div class="detail-meta">
-            <span class="detail-location">{{ t('discoveredAt') }}: {{ selectedItem.location }}</span>
+        <!-- 右侧：详情展示 -->
+        <div class="detail-display">
+          <div v-if="selectedItem" class="detail-content" :class="{ locked: !isUnlocked(selectedItem.id) }">
+            <!-- 大图 -->
+            <div class="detail-image-wrapper">
+              <img 
+                v-if="selectedItem.image" 
+                :src="selectedItem.image" 
+                class="detail-large-image"
+                :class="{ silhouette: !isUnlocked(selectedItem.id) }"
+              />
+              <div v-else class="detail-icon-large">{{ isUnlocked(selectedItem.id) ? selectedItem.icon : '🔒' }}</div>
+            </div>
+            <!-- 文字介绍 -->
+            <div class="detail-info">
+              <h3 class="detail-title">{{ selectedItem.name }}</h3>
+              <div class="detail-location">{{ isUnlocked(selectedItem.id) ? selectedItem.location : '???' }}</div>
+              <p class="detail-description">
+                {{ isUnlocked(selectedItem.id) ? selectedItem.description : t('lockedItemHint') }}
+              </p>
+            </div>
           </div>
-        </div>
-        <div v-else-if="selectedItem && !isUnlocked(selectedItem.id)" class="item-detail locked">
-          <h3 class="detail-title">{{ selectedItem.name }}</h3>
-          <div class="detail-icon">🔒</div>
-          <p class="detail-description">{{ t('lockedItemLocation') }}: {{ selectedItem.location }}</p>
+          <div v-else class="detail-empty">
+            <div class="empty-icon">📖</div>
+            <div class="empty-text">{{ t('selectLocationHint') }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -81,6 +103,10 @@ export default {
     allItems() {
       return this.collectionSystem?.getAllItems() || [];
     },
+    // 只显示地点类收集物（建筑）
+    locationItems() {
+      return this.allItems.filter(item => item.category === 'location');
+    },
     totalProgress() {
       const progress = this.collectionSystem?.getProgress();
       return progress?.percentage || 0;
@@ -111,7 +137,9 @@ export default {
   methods: {
     refreshUnlockedItems() {
       if (this.collectionSystem) {
-        this.unlockedItems = new Set(this.collectionSystem.unlockedItems);
+        // 从 collectionSystem 获取已解锁物品的数组
+        const unlockedArray = this.collectionSystem.unlockedItemIds;
+        this.unlockedItems = new Set(unlockedArray);
       }
     },
     isUnlocked(itemId) {
@@ -148,7 +176,7 @@ export default {
 .collection-panel {
   width: 800px;
   height: 500px;
-  background: url('/photo/Games/Collection.png') no-repeat center center;
+  background: url('/photo/Games/Collection.webp') no-repeat center center;
   background-size: 100% 100%;
   border-radius: 8px;
   position: relative;
@@ -195,139 +223,216 @@ export default {
   border-color: rgba(212, 175, 55, 0.8);
 }
 
-/* 内容区 */
+/* 内容区 - 左右布局 */
 .collection-content {
-  padding: 70px 50px 40px 50px;
+  padding: 70px 30px 30px 30px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   box-sizing: border-box;
+  gap: 20px;
 }
 
-.items-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 15px;
-  overflow-y: auto;
-  padding-right: 10px;
-  flex: 1;
-}
-
-.item-card {
-  width: 100px;
-  height: 100px;
-  background: rgba(139, 90, 43, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 6px;
+/* 左侧：地点列表 */
+.location-list {
+  width: 180px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.location-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(139, 90, 43, 0.4);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
-.item-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  z-index: 20;
-  position: relative;
+.location-item:hover {
+  background: rgba(139, 90, 43, 0.6);
+  border-color: rgba(212, 175, 55, 0.5);
 }
 
-.item-card.unlocked {
+.location-item.active {
   background: rgba(139, 90, 43, 0.8);
-  border-color: rgba(212, 175, 55, 0.6);
+  border-color: #d4af37;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
-.item-card.locked {
-  background: rgba(100, 100, 100, 0.4);
-  border-color: rgba(150, 150, 150, 0.3);
+.location-item.locked {
   opacity: 0.6;
 }
 
-.item-image-wrapper {
-  width: 70px;
-  height: 70px;
+.location-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
 }
 
-.item-image {
+.thumb-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  transition: all 0.3s;
+  object-fit: cover;
 }
 
-.item-image.silhouette {
-  filter: grayscale(100%) brightness(0.3) contrast(1.2);
-  opacity: 0.6;
+.thumb-image.silhouette {
+  filter: grayscale(100%) brightness(0.2) contrast(1.2);
+  opacity: 0.5;
 }
 
-.item-icon-fallback {
-  font-size: 36px;
+.thumb-icon {
+  font-size: 20px;
 }
 
-.item-name {
-  color: #f5e6c8;
-  font-size: 12px;
-  text-align: center;
-  padding: 0 5px;
-}
-
-.item-card.locked .item-name {
-  color: #999;
-}
-
-/* 详情区 */
-.item-detail {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(139, 90, 43, 0.7);
-  border: 2px solid rgba(212, 175, 55, 0.4);
-  border-radius: 10px;
+.location-name {
   flex: 1;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.item-detail.locked {
-  background: rgba(80, 80, 80, 0.5);
-  border-color: rgba(150, 150, 150, 0.3);
+.location-item.locked .location-name {
+  color: #ffffff;
+  opacity: 0.8;
+}
+
+.location-status {
+  font-size: 12px;
+}
+
+.status-unlocked {
+  color: #4caf50;
+}
+
+.status-locked {
+  opacity: 0.5;
+}
+
+/* 右侧：详情展示 */
+.detail-display {
+  flex: 1;
+  background: rgba(139, 90, 43, 0.3);
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.detail-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-content.locked {
+  opacity: 0.8;
+}
+
+.detail-image-wrapper {
+  width: 100%;
+  height: 280px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.detail-large-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-large-image.silhouette {
+  filter: grayscale(100%) brightness(0.15) contrast(1.2);
+  opacity: 0.4;
+}
+
+.detail-icon-large {
+  font-size: 80px;
+}
+
+.detail-info {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-info .detail-title {
+  color: #ffffff;
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.detail-info .detail-location {
+  color: #ffd700;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.detail-info .detail-description {
+  color: #ffffff;
+  font-size: 15px;
+  line-height: 1.8;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 空状态 */
+.detail-empty {
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  color: rgba(245, 230, 200, 0.5);
 }
 
-.detail-title {
-  color: #f5e6c8;
-  font-size: 20px;
-  margin-bottom: 10px;
+.empty-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.empty-text {
+  font-size: 16px;
   font-family: 'STKaiti', 'KaiTi', serif;
 }
 
-.detail-icon {
-  font-size: 48px;
-  margin: 10px 0;
+/* 滚动条样式 */
+.location-list::-webkit-scrollbar {
+  width: 4px;
 }
 
-.detail-description {
-  color: #e8d4b8;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 10px 0;
+.location-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
 }
 
-.detail-meta {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(212, 175, 55, 0.3);
-}
-
-.detail-location {
-  color: #d4af37;
-  font-size: 12px;
+.location-list::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+  border-radius: 2px;
 }
 
 /* 滚动条样式 */

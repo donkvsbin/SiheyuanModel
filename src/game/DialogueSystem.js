@@ -12,14 +12,14 @@ export class DialogueSystem {
         this.elements = {};
         this.characterImages = {
             'zh': {
-                '王爷爷': '/photo/Character2D/oldman.png',
-                '你': '/photo/Character2D/me.png',
-                '老奶奶': '/photo/Character2D/oldwoman.png'
+                '王爷爷': '/photo/Character2D/oldman.webp',
+                '你': '/photo/Character2D/me.webp',
+                '老奶奶': '/photo/Character2D/oldwoman.webp'
             },
             'en': {
-                'Grandpa Wang': '/photo/Character2D/oldman.png',
-                'You': '/photo/Character2D/me.png',
-                'Grandma': '/photo/Character2D/oldwoman.png'
+                'Grandpa Wang': '/photo/Character2D/oldman.webp',
+                'You': '/photo/Character2D/me.webp',
+                'Grandma': '/photo/Character2D/oldwoman.webp'
             }
         };
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -48,7 +48,7 @@ export class DialogueSystem {
             transform: translateX(-50%);
             width: 1200px;
             height: 337px;
-            background-image: url('/photo/chatbox.png');
+            background-image: url('/photo/chatbox.webp');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -160,7 +160,7 @@ export class DialogueSystem {
             transform: translateX(-50%);
             width: 650px;
             height: 450px;
-            background-image: url('/photo/tips.png');
+            background-image: url('/photo/tips.webp');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -232,7 +232,12 @@ export class DialogueSystem {
         document.head.appendChild(style);
     }
 
-    updateAvatar(speaker) {
+    updateAvatar(speaker, overrideImage = null) {
+        if (overrideImage) {
+            this.elements.avatar.style.display = 'block';
+            this.elements.avatarImg.src = overrideImage;
+            return;
+        }
         const localeImages = this.characterImages[this.locale] || this.characterImages['zh'];
         const avatarPath = localeImages[speaker];
         if (avatarPath) {
@@ -243,7 +248,7 @@ export class DialogueSystem {
         }
     }
 
-    start(dialogueData, onComplete) {
+    start(dialogueData, onComplete, options = {}) {
         this.currentDialogue = dialogueData;
         this.currentIndex = 0;
         this.onComplete = onComplete;
@@ -251,6 +256,8 @@ export class DialogueSystem {
         this.isTyping = false; // 是否正在打字
         this.typeSpeed = 50; // 打字速度（毫秒/字）
         this.typeTimer = null; // 打字定时器
+        this.avatarOverride = options.avatarOverride || null; // 头像覆盖
+        this.playerAvatarOverride = options.playerAvatarOverride || null; // 玩家头像覆盖
         this.elements.box.style.display = 'block';
         this.elements.box.classList.add('show');
 
@@ -284,7 +291,17 @@ export class DialogueSystem {
 
         const line = this.currentDialogue[this.currentIndex];
         this.elements.speaker.textContent = line.speaker || '';
-        this.updateAvatar(line.speaker);
+        // 如果有头像覆盖且当前说话者是王爷爷/Grandpa Wang，使用覆盖头像
+        // 如果有玩家头像覆盖且当前说话者是你/You，使用覆盖头像
+        const isGrandpa = line.speaker === '王爷爷' || line.speaker === 'Grandpa Wang';
+        const isPlayer = line.speaker === '你' || line.speaker === 'You';
+        let overrideImage = null;
+        if (isGrandpa && this.avatarOverride) {
+            overrideImage = this.avatarOverride;
+        } else if (isPlayer && this.playerAvatarOverride) {
+            overrideImage = this.playerAvatarOverride;
+        }
+        this.updateAvatar(line.speaker, overrideImage);
 
         // 开始打字机效果
         this.startTyping(line.text || '');
