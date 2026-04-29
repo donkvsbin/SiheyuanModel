@@ -750,57 +750,68 @@ export const interactionPoints = [
 export const collectionData = {
     zh: {
         items: [
+            // 收集物品类 - 有3D模型
             {
                 id: "wang_family_book",
                 name: "王氏家谱",
                 icon: "",
-                image: "/photo/Collection/Book.png",
+                image: "/photo/Collection/Book.webp",
+                modelPath: "/models/Book.glb",
                 interactionId: "familybook",
                 location: "正房",
-                description: "王氏家族世代相传的家谱，记录了王家三代人在静心院的生活点滴。泛黄的纸页上记载着家族的荣耀与传承。"
+                description: "王氏家族世代相传的家谱，记录了王家三代人在静心院的生活点滴。泛黄的纸页上记载着家族的荣耀与传承。",
+                category: "collectible"
             },
             {
                 id: "land_deed",
                 name: "地契",
                 icon: "",
-                image: "/photo/Collection/Landdeed.png",
+                image: "/photo/Collection/Landdeed.webp",
+                modelPath: "/models/Diqi.glb",
                 interactionId: "landdeed",
                 location: "正房",
-                description: "地契是房屋和土地所有权的证明文件。在古代北京，四合院的主人会保存地契，以证明自己对房屋的合法拥有权。地契通常盖有官方印章，具有法律效力。"
+                description: "地契是房屋和土地所有权的证明文件。在古代北京，四合院的主人会保存地契，以证明自己对房屋的合法拥有权。地契通常盖有官方印章，具有法律效力。",
+                category: "collectible"
             },
             {
                 id: "folding_fan",
                 name: "折扇",
                 icon: "",
-                image: "/photo/Collection/Fan.png",
+                image: "/photo/Collection/Fan.webp",
+                modelPath: "/models/Fan.glb",
                 interactionId: "fan",
                 location: "东厢房",
-                description: "折扇是传统的纳凉工具。夏天，人们常在院子里一边乘凉，一边摇扇子。折扇不仅实用，还常带有书法或绘画装饰。"
+                description: "折扇是传统的纳凉工具。夏天，人们常在院子里一边乘凉，一边摇扇子。折扇不仅实用，还常带有书法或绘画装饰。",
+                category: "collectible"
             },
             {
                 id: "jianzi",
                 name: "毽子",
                 icon: "",
-                image: "/photo/Collection/Jianzi.png",
+                image: "/photo/Collection/Jianzi.webp",
+                modelPath: "/models/Jianzi.glb",
                 interactionId: "jianzi",
                 location: "内院",
-                description: "踢毽子是传统的儿童游戏，在院子里非常常见。"
+                description: "踢毽子是传统的儿童游戏，在院子里非常常见。",
+                category: "collectible"
             },
             {
                 id: "pen",
                 name: "钢笔",
                 icon: "",
                 image: "/photo/Collection/Pen.webp",
+                modelPath: "/models/pen.glb",
                 interactionId: "pen",
                 location: "东厢房",
-                description: "王爷爷三儿子小时候写字用的那支钢笔，承载着家族的记忆与思念。"
+                description: "王爷爷三儿子小时候写字用的那支钢笔，承载着家族的记忆与思念。",
+                category: "collectible"
             },
             // 建筑/地点类 - 图鉴系统
             {
                 id: "east_wing",
                 name: "东厢房",
                 icon: "🏠",
-                image: "/photo/Collection/Dongxiangfang.png",
+                image: "/photo/Collection/Dongxiangfang.webp",
                 interactionId: "eastwing",
                 location: "四合院东侧",
                 description: "东厢房位于四合院东侧，坐东朝西，是晚辈居住的地方。它与西厢房相对，一东一西，阴阳平衡。东厢房通常比正房略低，体现长幼有序的传统伦理。在这里，你找到了王爷爷三儿子小时候用的钢笔。",
@@ -810,7 +821,7 @@ export const collectionData = {
                 id: "west_wing",
                 name: "西厢房",
                 icon: "🏠",
-                image: "/photo/Collection/Xixiangfang.png",
+                image: "/photo/Collection/Xixiangfang.webp",
                 interactionId: "westwing",
                 location: "四合院西侧",
                 description: "西厢房位于四合院西侧，与东厢房相对。在四合院中，东西厢房对称分布，体现阴阳平衡的理念。西厢房同样是晚辈的居所，与东厢房共同构成内院的重要组成部分。在这里，你找到了那张缺失的全家福碎片。",
@@ -820,7 +831,7 @@ export const collectionData = {
                 id: "main_house",
                 name: "正房",
                 icon: "🏯",
-                image: "/photo/Collection/Zhengfang.png",
+                image: "/photo/Collection/Zhengfang.webp",
                 interactionId: "mainhouse",
                 location: "四合院北侧",
                 description: "正房是四合院中地位最高的建筑，位于院落北侧，坐北朝南。正房高敞，是长辈的居所；厢房略低，归晚辈居住。一高一低之间，是长幼有序，也是敬老的传统。王爷爷常在这里翻看家谱，回忆往事。",
@@ -830,7 +841,7 @@ export const collectionData = {
                 id: "inner_courtyard",
                 name: "内院",
                 icon: "🌳",
-                image: "/photo/Collection/Neiyuan.png",
+                image: "/photo/Collection/Neiyuan.webp",
                 interactionId: "chuihuamen",
                 location: "垂花门内",
                 description: "内院是四合院的核心区域，穿过垂花门便进入内院。这里有石榴树、海棠树，还有老奶奶常坐的摇椅。内院是家人日常活动的地方，也是孩子们嬉戏玩耍的场所。",
@@ -840,7 +851,7 @@ export const collectionData = {
                 id: "garden_path",
                 name: "入院小径",
                 icon: "🚪",
-                image: "/photo/Collection/Ruyuanxiaojing.png",
+                image: "/photo/Collection/Ruyuanxiaojing.webp",
                 interactionId: "arrow2",
                 location: "影壁后",
                 description: "入院小径连接着大门和内院，绕过影壁便是。影壁挡住外人视线，保护院内隐私，也阻挡邪气直入。壁上常有'福'字或吉祥图案。",
@@ -850,7 +861,7 @@ export const collectionData = {
                 id: "main_gate",
                 name: "大门",
                 icon: "🚪",
-                image: "/photo/Collection/Damen.png",
+                image: "/photo/Collection/Damen.webp",
                 interactionId: "oldman",
                 location: "四合院南侧",
                 description: "大门是四合院的入口，也是家族的门面。大门通常位于院落东南角，朝向南方。门槛高30厘米，象征地位，也防止雨水倒灌。王爷爷常在这里迎接客人，送别儿女。",
@@ -864,7 +875,7 @@ export const collectionData = {
                 id: "wang_family_book",
                 name: "Wang Family Genealogy",
                 icon: "",
-                image: "/photo/Collection/Book.png",
+                image: "/photo/Collection/Book.webp",
                 interactionId: "familybook",
                 location: "Main House",
                 description: "The Wang family's ancestral genealogy, passed down through generations, recording three generations of the Wang family's life in Jingxin Courtyard. The yellowed pages bear witness to the family's honor and legacy."
@@ -873,7 +884,7 @@ export const collectionData = {
                 id: "land_deed",
                 name: "Land Deed",
                 icon: "",
-                image: "/photo/Collection/Landdeed.png",
+                image: "/photo/Collection/Landdeed.webp",
                 interactionId: "landdeed",
                 location: "Main House",
                 description: "The land deed is a legal document proving ownership of houses and land. In ancient Beijing, siheyuan owners would keep land deeds to prove their legal ownership of the property. The deed usually bears an official seal and has legal validity."
@@ -882,7 +893,7 @@ export const collectionData = {
                 id: "folding_fan",
                 name: "Folding Fan",
                 icon: "",
-                image: "/photo/Collection/Fan.png",
+                image: "/photo/Collection/Fan.webp",
                 interactionId: "fan",
                 location: "East Wing",
                 description: "The folding fan is a traditional cooling tool. In summer, people would sit in the courtyard enjoying the cool breeze while waving fans. Folding fans are not only practical but often decorated with calligraphy or paintings."
@@ -891,7 +902,7 @@ export const collectionData = {
                 id: "jianzi",
                 name: "Jianzi",
                 icon: "",
-                image: "/photo/Collection/Jianzi.png",
+                image: "/photo/Collection/Jianzi.webp",
                 interactionId: "jianzi",
                 location: "Inner Courtyard",
                 description: "Kick shuttlecock is a traditional children's game, very common in the courtyard."

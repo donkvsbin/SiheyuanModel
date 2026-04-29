@@ -13,7 +13,8 @@ export class SaveManager {
         const saveData = {
             timestamp: Date.now(),
             playerPosition: data.playerPosition,
-            unlockedItems: data.unlockedItems,
+            collectionData: data.collectionData, // 收集系统数据（新格式）
+            unlockedItems: data.unlockedItems, // 兼容旧格式
             storyFlags: data.storyFlags,
             grandpaMemory: data.grandpaMemory, // 王爷爷的记忆恢复进度
             questState: data.questState, // 任务系统状态

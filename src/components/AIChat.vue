@@ -124,7 +124,7 @@ export default {
       this.isLoading = true;
 
       try {
-        const response = await fetch(`http://36.151.149.186:8081/api/ai-chat/deepseek?message=${encodeURIComponent(message)}`, {
+        const response = await fetch(`/api/ai-chat/deepseek?message=${encodeURIComponent(message)}`, {
           method: 'POST'
         });
 

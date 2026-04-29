@@ -9,32 +9,53 @@
 
       <!-- 内容区 - 左右布局 -->
       <div class="collection-content">
-        <!-- 左侧：地点列表 -->
-        <div class="location-list">
-          <div
-            v-for="item in locationItems"
-            :key="item.id"
-            class="location-item"
-            :class="{ 
-              active: selectedItem && selectedItem.id === item.id,
-              unlocked: isUnlocked(item.id), 
-              locked: !isUnlocked(item.id) 
-            }"
-            @click="selectItem(item)"
-          >
-            <div class="location-thumb">
-              <img 
-                v-if="item.image" 
-                :src="item.image" 
-                class="thumb-image"
-                :class="{ silhouette: !isUnlocked(item.id) }"
-              />
-              <div v-else class="thumb-icon">{{ isUnlocked(item.id) ? item.icon : '?' }}</div>
+        <!-- 左侧：分类标签 + 列表 -->
+        <div class="left-panel">
+          <!-- 分类标签 -->
+          <div class="category-tabs">
+            <div 
+              class="tab" 
+              :class="{ active: currentCategory === 'location' }"
+              @click="currentCategory = 'location'"
+            >
+              {{ t('locations') }}
             </div>
-            <div class="location-name">{{ item.name }}</div>
-            <div class="location-status">
-              <span v-if="isUnlocked(item.id)" class="status-unlocked">✓</span>
-              <span v-else class="status-locked">🔒</span>
+            <div 
+              class="tab" 
+              :class="{ active: currentCategory === 'collectible' }"
+              @click="currentCategory = 'collectible'"
+            >
+              {{ t('collectibles') }}
+            </div>
+          </div>
+          
+          <!-- 物品列表 -->
+          <div class="location-list">
+            <div
+              v-for="item in filteredItems"
+              :key="item.id"
+              class="location-item"
+              :class="{ 
+                active: selectedItem && selectedItem.id === item.id,
+                unlocked: isUnlocked(item.id), 
+                locked: !isUnlocked(item.id) 
+              }"
+              @click="selectItem(item)"
+            >
+              <div class="location-thumb">
+                <img 
+                  v-if="item.image" 
+                  :src="item.image" 
+                  class="thumb-image"
+                  :class="{ silhouette: !isUnlocked(item.id) }"
+                />
+                <div v-else class="thumb-icon">{{ isUnlocked(item.id) ? item.icon : '?' }}</div>
+              </div>
+              <div class="location-name">{{ item.name }}</div>
+              <div class="location-status">
+                <span v-if="isUnlocked(item.id)" class="status-unlocked">✓</span>
+                <span v-else class="status-locked">🔒</span>
+              </div>
             </div>
           </div>
         </div>
@@ -42,15 +63,27 @@
         <!-- 右侧：详情展示 -->
         <div class="detail-display">
           <div v-if="selectedItem" class="detail-content" :class="{ locked: !isUnlocked(selectedItem.id) }">
-            <!-- 大图 -->
-            <div class="detail-image-wrapper">
-              <img 
-                v-if="selectedItem.image" 
-                :src="selectedItem.image" 
-                class="detail-large-image"
-                :class="{ silhouette: !isUnlocked(selectedItem.id) }"
-              />
-              <div v-else class="detail-icon-large">{{ isUnlocked(selectedItem.id) ? selectedItem.icon : '🔒' }}</div>
+            <!-- 3D模型展示（收集物）或图片（地点） -->
+            <div class="detail-viewer-wrapper">
+              <!-- 3D模型展示 -->
+              <div v-if="shouldShowModel" class="model-viewer-container">
+                <ModelViewer 
+                  :model-path="selectedItem.modelPath"
+                  :auto-rotate="false"
+                  @loaded="onModelLoaded"
+                />
+                <div class="model-hint">{{ t('modelHint') }}</div>
+              </div>
+              <!-- 普通图片展示 -->
+              <div v-else class="detail-image-wrapper">
+                <img 
+                  v-if="selectedItem.image" 
+                  :src="selectedItem.image" 
+                  class="detail-large-image"
+                  :class="{ silhouette: !isUnlocked(selectedItem.id) }"
+                />
+                <div v-else class="detail-icon-large">{{ isUnlocked(selectedItem.id) ? selectedItem.icon : '🔒' }}</div>
+              </div>
             </div>
             <!-- 文字介绍 -->
             <div class="detail-info">
@@ -63,7 +96,7 @@
           </div>
           <div v-else class="detail-empty">
             <div class="empty-icon">📖</div>
-            <div class="empty-text">{{ t('selectLocationHint') }}</div>
+            <div class="empty-text">{{ t('selectItemHint') }}</div>
           </div>
         </div>
       </div>
@@ -73,9 +106,13 @@
 
 <script>
 import { i18n } from '../utils/i18n.js';
+import ModelViewer from './ModelViewer.vue';
 
 export default {
   name: 'CollectionView',
+  components: {
+    ModelViewer
+  },
   props: {
     visible: {
       type: Boolean,
@@ -93,7 +130,9 @@ export default {
   data() {
     return {
       selectedItem: null,
-      unlockedItems: new Set()
+      unlockedItems: new Set(),
+      currentCategory: 'location', // 'location' 或 'collectible'
+      isDragging: false
     };
   },
   computed: {
@@ -103,9 +142,15 @@ export default {
     allItems() {
       return this.collectionSystem?.getAllItems() || [];
     },
-    // 只显示地点类收集物（建筑）
-    locationItems() {
-      return this.allItems.filter(item => item.category === 'location');
+    // 根据当前分类过滤物品
+    filteredItems() {
+      return this.allItems.filter(item => item.category === this.currentCategory);
+    },
+    // 是否显示3D模型（收集物且有模型路径）
+    shouldShowModel() {
+      return this.selectedItem?.category === 'collectible' && 
+             this.selectedItem?.modelPath && 
+             this.isUnlocked(this.selectedItem.id);
     },
     totalProgress() {
       const progress = this.collectionSystem?.getProgress();
@@ -123,6 +168,10 @@ export default {
       if (val) {
         this.refreshUnlockedItems();
       }
+    },
+    currentCategory() {
+      // 切换分类时重置选中
+      this.selectedItem = null;
     }
   },
   mounted() {
@@ -154,6 +203,9 @@ export default {
     },
     handleOverlayClick() {
       this.close();
+    },
+    onModelLoaded() {
+      console.log('Model loaded successfully');
     }
   }
 };
@@ -233,9 +285,48 @@ export default {
   gap: 20px;
 }
 
+/* 左侧面板 */
+.left-panel {
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 分类标签 */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 4px;
+  background: rgba(139, 90, 43, 0.4);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 6px;
+  color: #f5e6c8;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'STKaiti', 'KaiTi', serif;
+}
+
+.tab:hover {
+  background: rgba(139, 90, 43, 0.6);
+}
+
+.tab.active {
+  background: rgba(139, 90, 43, 0.85);
+  border-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
 /* 左侧：地点列表 */
 .location-list {
-  width: 180px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -329,22 +420,55 @@ export default {
   border: 2px solid rgba(212, 175, 55, 0.3);
   border-radius: 12px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .detail-content {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .detail-content.locked {
   opacity: 0.8;
 }
 
+/* 详情查看器容器 */
+.detail-viewer-wrapper {
+  width: 100%;
+  height: 220px;
+  background: rgba(0, 0, 0, 0.3);
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* 3D模型展示容器 */
+.model-viewer-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.model-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(245, 230, 200, 0.7);
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
 .detail-image-wrapper {
   width: 100%;
-  height: 280px;
-  background: rgba(0, 0, 0, 0.3);
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -371,6 +495,7 @@ export default {
   padding: 20px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .detail-info .detail-title {
@@ -398,6 +523,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  min-height: 60px;
 }
 
 /* 空状态 */
@@ -420,7 +546,7 @@ export default {
   font-family: 'STKaiti', 'KaiTi', serif;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 左侧列表 */
 .location-list::-webkit-scrollbar {
   width: 4px;
 }
@@ -435,7 +561,41 @@ export default {
   border-radius: 2px;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 右侧详情 */
+.detail-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.detail-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.detail-content::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.5);
+  border-radius: 3px;
+}
+
+.detail-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.7);
+}
+
+/* 滚动条样式 - 描述文字 */
+.detail-description::-webkit-scrollbar {
+  width: 4px;
+}
+
+.detail-description::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.detail-description::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+  border-radius: 2px;
+}
+
+/* 滚动条样式 - 网格 */
 .items-grid::-webkit-scrollbar {
   width: 6px;
 }

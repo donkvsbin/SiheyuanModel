@@ -613,21 +613,30 @@ export default {
   methods: {
     // 保存并退出游戏
     saveAndExit() {
+      console.log('保存游戏，collectionSystem存在:', !!this.collectionSystem);
+      if (this.collectionSystem) {
+        console.log('收集系统解锁状态:', this.collectionSystem.unlockedItemIds);
+      }
+      
       const storyFlags = this.storyManager && this.storyManager.flags instanceof Map
         ? Object.fromEntries(this.storyManager.flags)
         : {};
+      const collectionData = this.collectionSystem ? this.collectionSystem.getSessionData() : null;
+      console.log('要保存的收集数据:', collectionData);
+      
       const saveData = {
         playerPosition: this.player ? {
           x: this.player.position.x,
           y: this.player.position.y,
           z: this.player.position.z
         } : null,
-        collectionData: this.collectionSystem ? this.collectionSystem.getSessionData() : null,
+        collectionData: collectionData,
         storyFlags: storyFlags,
         grandpaMemory: this.grandpaMemory || 0,
         locale: this.locale,
         questState: this.questManager ? this.questManager.saveState() : null
       };
+      console.log('完整存档数据:', saveData);
       saveManager.save(saveData);
       this.$emit('exit');
     },
@@ -2578,14 +2587,7 @@ export default {
       this.collectionSystem = new CollectionSystem({ persistent: false });
       this.loadCollectionForCurrentLocale();
       
-      // 如果是继续游戏，立即加载存档中的收集数据
-      if (!this.isNewGame) {
-        const saveData = saveManager.load();
-        if (saveData && saveData.collectionData) {
-          this.collectionSystem.loadSessionData(saveData.collectionData);
-          console.log('初始化时恢复收集物品:', saveData.collectionData);
-        }
-      }
+      // 注意：收集数据在 finishLoadingAndInit 中统一恢复，避免重复恢复
 
       // 监听语言变化
       i18n.onChange((locale) => {
@@ -2722,13 +2724,32 @@ export default {
             this.storyManager.loadFlags(saveData.storyFlags);
           }
           // 恢复收集物品（当前游戏会话）
-          if (saveData.collectionData && this.collectionSystem) {
+          console.log('准备恢复收集物品, collectionSystem存在:', !!this.collectionSystem);
+          console.log('存档中的收集数据:', saveData.collectionData);
+          if (this.collectionSystem) {
             // 确保收集数据定义已加载后再恢复解锁状态
             if (!this.collectionSystem.collectionData) {
+              console.log('collectionData未加载，先加载数据定义');
               this.loadCollectionForCurrentLocale();
             }
-            this.collectionSystem.loadSessionData(saveData.collectionData);
-            console.log('恢复收集物品:', saveData.collectionData);
+            
+            // 优先使用新的 collectionData 格式
+            if (saveData.collectionData) {
+              console.log('恢复前的解锁状态:', this.collectionSystem.unlockedItemIds);
+              this.collectionSystem.loadSessionData(saveData.collectionData);
+              console.log('恢复后的解锁状态:', this.collectionSystem.unlockedItemIds);
+            } 
+            // 兼容旧存档：使用 unlockedItems 数组
+            else if (saveData.unlockedItems && Array.isArray(saveData.unlockedItems)) {
+              console.log('使用旧存档格式恢复收集物品:', saveData.unlockedItems);
+              saveData.unlockedItems.forEach(itemId => {
+                this.collectionSystem.unlockItem(itemId);
+              });
+            } else {
+              console.warn('存档中没有收集数据');
+            }
+          } else {
+            console.warn('collectionSystem 未初始化');
           }
           // 注意：王爷爷位置在模型加载完成后再恢复
         }
@@ -2752,10 +2773,10 @@ export default {
         '/photo/Character2D/oldman_sad.webp',
         '/photo/Character2D/oldwoman.webp',
         '/photo/Character2D/thirdson.webp',
-        '/photo/Collection/Book.png',
-        '/photo/Collection/Fan.png',
-        '/photo/Collection/Jianzi.png',
-        '/photo/Collection/Landdeed.png'
+        '/photo/Collection/Book.webp',
+        '/photo/Collection/Fan.webp',
+        '/photo/Collection/Jianzi.webp',
+        '/photo/Collection/Landdeed.webp'
       ];
       
       imagesToPreload.forEach(src => {
