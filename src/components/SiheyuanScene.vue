@@ -1553,6 +1553,43 @@ export default {
           gltf.scene.scale.setScalar(1);
           scene.add(gltf.scene);
 
+          // --- 空气墙 ---
+          const wallH = 50;
+          const wallT = 0.3;
+          const bounds = { minX: -42, maxX: 39, minZ: -71, maxZ: 72 };
+          const cx = (bounds.minX + bounds.maxX) / 2;
+          const cz = (bounds.minZ + bounds.maxZ) / 2;
+          const hx = (bounds.maxX - bounds.minX) / 2;
+          const hz = (bounds.maxZ - bounds.minZ) / 2;
+          // 四面墙围住整个可玩区域
+          const wallDefs = [
+            { x: cx, z: bounds.minZ, hx: hx, hz: wallT },       // 北墙 Z=-71
+            { x: cx, z: bounds.maxZ, hx: hx, hz: wallT },       // 南墙 Z=72
+            { x: bounds.minX, z: cz, hx: wallT, hz: hz },       // 西墙 X=-42
+            { x: bounds.maxX, z: cz, hx: wallT, hz: hz },       // 东墙 X=39
+          ];
+
+          wallDefs.forEach(w => {
+            const body = this.world.createRigidBody(
+              RAPIER.RigidBodyDesc.fixed().setTranslation(w.x, wallH / 2, w.z)
+            );
+            this.world.createCollider(
+              RAPIER.ColliderDesc.cuboid(w.hx, wallH / 2, w.hz),
+              body
+            );
+
+            // 调试可视化：确认位置后设置 opacity 为 0 即完全透明
+            const debugGeo = new THREE.BoxGeometry(w.hx * 2, wallH, w.hz * 2);
+            const debugMat = new THREE.MeshBasicMaterial({
+              color: 0xff0000,
+              transparent: true,
+              opacity: 0,
+            });
+            const debugMesh = new THREE.Mesh(debugGeo, debugMat);
+            debugMesh.position.set(w.x, wallH / 2, w.z);
+            scene.add(debugMesh);
+          });
+
           // --- 所有模型加载完成后，再初始化人物 ---
           // 创建动力学刚体 (Kinematic Character)，起始高度设为 20
           const playerDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()

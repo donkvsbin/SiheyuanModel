@@ -1,7 +1,10 @@
 <template>
   <div id="app">
-    <StartMenu v-if="!gameStarted" @start="startGame" />
-    <SiheyuanScene v-else :is-new-game="isNewGame" :show-intro="isNewGame" @exit="exitGame" />
+    <router-view v-if="$route.path !== '/'" />
+    <template v-else>
+      <StartMenu v-if="!gameStarted" @start="startGame" />
+      <SiheyuanScene v-else :is-new-game="isNewGame" :show-intro="isNewGame" @exit="exitGame" />
+    </template>
   </div>
 </template>
 
