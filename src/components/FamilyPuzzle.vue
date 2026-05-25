@@ -1,52 +1,55 @@
 <template>
-  <div class="puzzle-page">
-    <button class="back-btn" @click="goBack">← 返回游戏</button>
+  <div v-if="visible" class="puzzle-overlay" @click.self="$emit('back')">
+    <div class="puzzle-panel">
+      <div class="panel-header">
+        <span class="panel-title">全家福</span>
+        <button class="close-btn" @click="$emit('back')">✕</button>
+      </div>
 
-    <div class="title">全家福</div>
-    <div class="subtitle">让离散的家人，重归团圆</div>
+      <div class="panel-body">
+        <div class="subtitle">让离散的家人，重归团圆</div>
 
-    <div class="puzzle-area" ref="areaRef">
-      <!-- Family photo base -->
-      <div class="photo-frame" ref="frameRef">
-        <img
-          :src="familySrc"
-          alt="全家福"
-          class="family-img"
-          draggable="false"
-          @contextmenu.prevent
-        />
-        <!-- Target zone highlight -->
-        <div v-if="ready" class="target-zone" :style="targetStyle">
-          <div class="target-glow"></div>
-          <span class="target-hint" v-if="!completed">拖放至此</span>
+        <div class="puzzle-area" ref="areaRef">
+          <div class="photo-frame" ref="frameRef">
+            <img
+              :src="familySrc"
+              alt="全家福"
+              class="family-img"
+              draggable="false"
+              @contextmenu.prevent
+            />
+            <div v-if="ready" class="target-zone" :style="targetStyle">
+              <div class="target-glow"></div>
+              <span class="target-hint" v-if="!completed">拖放至此</span>
+            </div>
+            <img v-if="completed" :src="finalSrc" alt="完整全家福" class="final-img-reveal" />
+          </div>
+
+          <div
+            v-if="ready && !completed"
+            ref="pieceRef"
+            class="puzzle-piece"
+            :class="{ dragging: isDragging, snapped: justSnapped }"
+            :style="pieceStyle"
+            @mousedown.prevent="startDrag"
+            @touchstart.prevent="startDrag"
+          >
+            <img
+              :src="pieceSrc"
+              alt="三儿子"
+              class="piece-img"
+              draggable="false"
+              @contextmenu.prevent
+            />
+          </div>
         </div>
 
-        <!-- Completed: show final image -->
-        <img v-if="completed" :src="finalSrc" alt="完整全家福" class="final-img-reveal" />
-      </div>
+        <div class="hint-text" v-if="ready && !completed && !isDragging">
+          <span class="hint-icon">🖱</span> 拖动右下角的照片碎片，拼入图中
+        </div>
 
-      <!-- Draggable piece -->
-      <div
-        v-if="ready && !completed"
-        ref="pieceRef"
-        class="puzzle-piece"
-        :class="{ dragging: isDragging, snapped: justSnapped }"
-        :style="pieceStyle"
-        @mousedown.prevent="startDrag"
-        @touchstart.prevent="startDrag"
-      >
-        <img
-          :src="pieceSrc"
-          alt="三儿子"
-          class="piece-img"
-          draggable="false"
-          @contextmenu.prevent
-        />
+        <button v-if="completed" class="confirm-btn" @click="$emit('complete')">好了</button>
       </div>
-    </div>
-
-    <div class="hint-text" v-if="ready && !completed && !isDragging">
-      <span class="hint-icon">🖱</span> 拖动右下角的照片碎片，拼入图中
     </div>
   </div>
 </template>
@@ -60,6 +63,13 @@ const SNAP_TOLERANCE = 50
 
 export default {
   name: 'FamilyPuzzle',
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['complete', 'back'],
   data() {
     return {
       familySrc: '/photo/Character2D/family.png',
@@ -102,8 +112,17 @@ export default {
       }
     },
   },
+  watch: {
+    visible(val) {
+      if (val) {
+        this.resetGame()
+        this.$nextTick(() => {
+          this.loadImages()
+        })
+      }
+    }
+  },
   mounted() {
-    this.loadImages()
     window.addEventListener('mousemove', this.onDrag)
     window.addEventListener('mouseup', this.endDrag)
     window.addEventListener('touchmove', this.onDrag, { passive: false })
@@ -118,14 +137,11 @@ export default {
     window.removeEventListener('resize', this.handleResize)
   },
   methods: {
-    goBack() {
-      this.$router.push('/')
-    },
-
     loadImages() {
+      this.ready = false
       const img = new Image()
       img.onload = () => {
-        const maxW = Math.min(window.innerWidth - 48, 520)
+        const maxW = Math.min(window.innerWidth - 80, 380)
         const scale = maxW / img.naturalWidth
         this.imgWidth = img.naturalWidth * scale
         this.imgHeight = img.naturalHeight * scale
@@ -136,7 +152,6 @@ export default {
         this.targetCenterX = this.imgWidth * TARGET_X + this.pieceW / 2
         this.targetCenterY = this.imgHeight * TARGET_Y + this.pieceH / 2
 
-        // Start piece centered below the photo
         this.resetPiecePosition()
         this.ready = true
       }
@@ -150,8 +165,7 @@ export default {
     },
 
     handleResize() {
-      this.ready = false
-      this.completed = false
+      if (!this.visible) return
       this.loadImages()
     },
 
@@ -219,49 +233,81 @@ export default {
 </script>
 
 <style scoped>
-.puzzle-page {
-  min-height: 100vh;
-  background: #0f0f1a;
-  color: #e0d5c0;
+.puzzle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.puzzle-panel {
+  background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d0 100%);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid #d4c4a8;
+  color: #5c4a32;
+  font-family: 'STKaiti', 'KaiTi', '楷体', serif;
+  user-select: none;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px 15px 24px;
+  border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+  background: rgba(139, 69, 19, 0.05);
+}
+
+.panel-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  color: #5c4a32;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(139, 69, 19, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #5c4a32;
+  font-weight: 300;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+.close-btn:hover {
+  background: rgba(139, 69, 19, 0.25);
+  transform: scale(1.05);
+}
+
+.panel-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
-  font-family: 'STKaiti', 'KaiTi', '楷体', serif;
-  user-select: none;
-  overflow-y: auto;
-}
-
-.back-btn {
-  align-self: flex-start;
-  background: none;
-  border: 1px solid #5a4a3a;
-  color: #b8a080;
-  padding: 8px 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 15px;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-.back-btn:hover {
-  border-color: #c9a96e;
-  color: #d4b896;
-}
-
-.title {
-  font-size: 48px;
-  font-weight: bold;
-  letter-spacing: 12px;
-  color: #d4b896;
-  margin-top: 8px;
-  text-shadow: 0 0 40px rgba(200, 160, 100, 0.4);
+  padding: 16px 20px 20px;
 }
 
 .subtitle {
-  font-size: 16px;
-  color: #6b5c4e;
-  margin-bottom: 20px;
+  font-size: 14px;
+  color: #8b7355;
+  margin-bottom: 16px;
   letter-spacing: 4px;
 }
 
@@ -272,11 +318,12 @@ export default {
 
 .photo-frame {
   position: relative;
-  border: 3px solid #3a2a1a;
+  border: 3px solid #d4c4a8;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 0 60px rgba(180, 140, 80, 0.15);
+  box-shadow: 0 4px 24px rgba(139, 69, 19, 0.12);
   line-height: 0;
+  background: #faf7f0;
 }
 
 .family-img {
@@ -289,7 +336,7 @@ export default {
 /* Target zone */
 .target-zone {
   position: absolute;
-  border: 2px dashed rgba(255, 215, 0, 0.5);
+  border: 2px dashed rgba(180, 130, 80, 0.5);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -301,21 +348,21 @@ export default {
 .target-glow {
   position: absolute;
   inset: 0;
-  background: rgba(255, 200, 50, 0.06);
+  background: rgba(180, 130, 80, 0.06);
   border-radius: 4px;
 }
 
 .target-hint {
   position: relative;
   z-index: 1;
-  color: rgba(255, 215, 0, 0.6);
-  font-size: 18px;
+  color: rgba(140, 100, 60, 0.6);
+  font-size: 16px;
   letter-spacing: 4px;
 }
 
 @keyframes targetPulse {
-  0%, 100% { border-color: rgba(255, 215, 0, 0.35); }
-  50% { border-color: rgba(255, 215, 0, 0.65); }
+  0%, 100% { border-color: rgba(180, 130, 80, 0.35); }
+  50% { border-color: rgba(180, 130, 80, 0.65); }
 }
 
 /* Puzzle piece */
@@ -324,19 +371,19 @@ export default {
   cursor: grab;
   z-index: 10;
   border-radius: 4px;
-  border: 2px solid rgba(200, 160, 100, 0.3);
+  border: 2px solid rgba(180, 130, 80, 0.4);
   transition: box-shadow 0.2s, border-color 0.2s;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 .puzzle-piece.dragging {
   cursor: grabbing;
   z-index: 20;
-  border-color: rgba(255, 200, 50, 0.6);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 200, 50, 0.25);
+  border-color: rgba(160, 100, 40, 0.7);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), 0 0 20px rgba(160, 100, 40, 0.2);
 }
 .puzzle-piece.snapped {
-  border-color: rgba(255, 215, 0, 0.9);
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  border-color: rgba(160, 100, 40, 0.9);
+  box-shadow: 0 0 24px rgba(160, 100, 40, 0.35);
   transition: all 0.3s ease;
 }
 
@@ -360,11 +407,30 @@ export default {
   z-index: 5;
 }
 
+/* Confirm button */
+.confirm-btn {
+  margin-top: 18px;
+  background: linear-gradient(135deg, #b8944e 0%, #9a7a3e 100%);
+  border: none;
+  color: #fff;
+  padding: 10px 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  letter-spacing: 4px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.confirm-btn:hover {
+  background: linear-gradient(135deg, #c9a96e 0%, #b8944e 100%);
+  box-shadow: 0 0 16px rgba(180, 130, 80, 0.3);
+}
+
 /* Hint */
 .hint-text {
   margin-top: 16px;
   font-size: 14px;
-  color: #5a4a3a;
+  color: #8b7355;
   letter-spacing: 2px;
   animation: hintFade 2s ease-in-out infinite;
 }
