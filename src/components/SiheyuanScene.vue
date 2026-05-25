@@ -232,6 +232,19 @@
       @start="handleTeaStart"
     />
 
+    <!-- 全家福拼图界面 -->
+    <FamilyPuzzle
+      :visible="showFamilyPuzzle"
+      @complete="handlePuzzleComplete"
+    />
+
+    <!-- 磨墨小游戏界面 -->
+    <InkGrinding
+      :visible="showInkGrinding"
+      :locale="locale"
+      @complete="handleInkGrindingComplete"
+    />
+
     <!-- 收集系统界面 -->
     <CollectionView
       v-if="showCollection"
@@ -306,7 +319,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {StoryManager} from '../game/StoryManager.js';
 import {DialogueSystem} from '../game/DialogueSystem.js';
 import {CollectionSystem} from '../game/CollectionSystem.js';
-import {getChuihuaDialogue, getCollectionData, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getPhotoPieceDialogue, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
+import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getInkStickDialogue, getPhotoPieceDialogue, getPhotoPieceDialoguePart2a, getPhotoPieceDialoguePart2b, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
 import {i18n} from '../utils/i18n.js';
 import CalligraphyPractice from './CalligraphyPractice.vue';
 import TeaCeremony from './TeaCeremony.vue';
@@ -317,6 +330,8 @@ import {saveManager} from '../game/SaveManager.js';
 import {QuestManager} from '../game/QuestManager.js';
 import QuestPanel from './QuestPanel.vue';
 import QuestList from './QuestList.vue';
+import FamilyPuzzle from './FamilyPuzzle.vue';
+import InkGrinding from './InkGrinding.vue';
 import AIChat from './AIChat.vue';
 
 export default {
@@ -327,7 +342,9 @@ export default {
     StoryIntro,
     QuestPanel,
     QuestList,
-    AIChat
+    AIChat,
+    FamilyPuzzle,
+    InkGrinding
   },
   props: {
     isNewGame: {
@@ -433,6 +450,12 @@ export default {
       // 茶道游戏状态
       showTeaCeremony: false,
       teaCeremonyStep: 0,
+      // 全家福拼图
+      showFamilyPuzzle: false,
+      isInPuzzle: false,
+      // 磨墨小游戏
+      showInkGrinding: false,
+      isInInkGrinding: false,
       // 拍照截图功能
       showPhotoFlash: false,
       photoGallery: [],
@@ -504,8 +527,11 @@ export default {
         'quest_talk_about_family_book',
         'quest_find_pen',
         'quest_talk_about_photo',
+        'quest_talk_about_ink_stick',
+        'quest_talk_deep',
+        'quest_find_inkstick',
+        'quest_find_brush',
         'quest_find_photo_piece',
-        'quest_talk_after_photo_piece',
         'quest_pick_pomegranate',
         'quest_share_pomegranate',
         'quest_explore_freely'
@@ -880,7 +906,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、书法、族谱、钢笔、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
+      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、书法、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1082,14 +1108,15 @@ export default {
       };
 
       // 加载钢笔模型
-      const loadPen = () => {
-        const penLoader = new GLTFLoader();
-        penLoader.setDRACOLoader(dracoLoader);
-        penLoader.load(
-          '/models/pen.glb',
+      // 加载毛笔模型
+      const loadBrush = () => {
+        const brushLoader = new GLTFLoader();
+        brushLoader.setDRACOLoader(dracoLoader);
+        brushLoader.load(
+          '/models/maobi.glb',
           (gltf) => {
             const model = gltf.scene;
-            model.position.set(-30, 16.8, 16);
+            model.position.set(-30, 16.75, 16);
             model.scale.setScalar(0.6);
             model.rotation.y = Math.PI / 2;
             model.traverse((child) => {
@@ -1099,14 +1126,45 @@ export default {
               }
             });
             scene.add(model);
-            this.pen = model;
-            optimizeModel(model, true); // 静态模型
-            this.createPenOutline();
+            this.brush = model;
+            optimizeModel(model, true);
+            this.createBrushOutline();
             this.updateLoadingProgress();
           },
           undefined,
           (err) => {
-            console.error('钢笔模型加载失败:', err);
+            console.error('毛笔模型加载失败:', err);
+            this.updateLoadingProgress();
+          }
+        );
+      };
+
+      // 加载墨锭模型
+      const loadInkStick = () => {
+        const inkLoader = new GLTFLoader();
+        inkLoader.setDRACOLoader(dracoLoader);
+        inkLoader.load(
+          '/models/moding.glb',
+          (gltf) => {
+            const model = gltf.scene;
+            model.position.set(26, 15.65, -7);
+            model.scale.setScalar(0.6);
+            model.rotation.y = Math.PI / 2;
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            scene.add(model);
+            this.inkStick = model;
+            optimizeModel(model, true);
+            this.createInkStickOutline();
+            this.updateLoadingProgress();
+          },
+          undefined,
+          (err) => {
+            console.error('墨锭模型加载失败:', err);
             this.updateLoadingProgress();
           }
         );
@@ -1287,14 +1345,12 @@ export default {
 
             // 创建老爷爷碰撞体（圆柱体包围盒）
             const grandpaLocation = this.storyManager.getGrandpaLocation();
-            const colliderPos = grandpaLocation === 'chuihuamen'
-              ? { x: 1, y: 15 + 1.5, z: -10 }
-              : { x: -2, y: 14.5 + 1.5, z: -36 };
+            const colliderPos = this.getGrandpaColliderPos(grandpaLocation);
             const oldmanColliderDesc = RAPIER.ColliderDesc.cylinder(1.5, 0.8)
               .setTranslation(colliderPos.x, colliderPos.y, colliderPos.z)
               .setFriction(0)
               .setRestitution(0);
-            this.world.createCollider(oldmanColliderDesc);
+            this.oldmanCollider = this.world.createCollider(oldmanColliderDesc);
 
             // 播放动画
             if (gltf.animations && gltf.animations.length > 0) {
@@ -1639,7 +1695,8 @@ export default {
           loadJianzi();
           loadCalligraphy();
           loadFamilyBook();
-          loadPen();
+          loadBrush();
+          loadInkStick();
           loadFamilyPhoto();
           loadThirdSonPhoto();
           loadAllArrows();
@@ -1685,7 +1742,7 @@ export default {
         this.world.step();
 
         // 打开 ESC 面板、坐在秋千上、临摹、茶道或tips显示时禁止 WASD 等移动操作
-        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInCalligraphy && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
+        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInCalligraphy && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
           if (this.flyMode) {
             // 飞行模式：无碰撞，自由移动
             const flySpeed = 8;
@@ -2041,7 +2098,7 @@ export default {
           }
         }
         // 对话、tips显示、茶道完成、收集界面或任务面板打开时不自动打开ESC面板
-        if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection || this.showQuestPanel) {
+        if (this.isInDialogue || this.isInPuzzle || this.isInInkGrinding || this.showFamilyPuzzle || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection || this.showQuestPanel) {
           this.showSettings = false;
           return;
         }
@@ -2110,7 +2167,7 @@ export default {
           if (this.showQuestPanel) {
             this.closeQuestPanel();
             return;
-          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showCollection) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showCollection) {
             if (document.pointerLockElement) {
               document.exitPointerLock();
             }
@@ -2126,7 +2183,7 @@ export default {
             // 如果已打开，则关闭
             this.closeCollection();
             return;
-          } else if (!this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
             // 如果未打开且满足条件，则打开
             this.openCollection();
             return;
@@ -2136,7 +2193,7 @@ export default {
 
         // P键拍照
         if (key === 'p') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
             this.takePhoto();
             return;
           }
@@ -2145,7 +2202,7 @@ export default {
 
         // O键打开照片画廊
         if (key === 'o') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
             this.openPhotoGallery();
             return;
           }
@@ -2209,7 +2266,7 @@ export default {
       this.onMouseMove = (e) => {
         // 直接通过鼠标移动旋转视角，无需拖拽
         // 对话、临摹、茶道、收集界面、AI聊天或tips显示时禁止视角控制
-        if (this.isInDialogue || this.isInCalligraphy || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
+        if (this.isInDialogue || this.isInCalligraphy || this.isInPuzzle || this.isInInkGrinding || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
         if (document.pointerLockElement) {
           // 跳过指针锁定刚激活时的第一帧移动，避免视角乱跳
           if (this.pointerLockJustActivated) return;
@@ -2255,30 +2312,20 @@ export default {
         return;
       }
 
-      // 检查是否已拾取全家福碎片（碎片对话优先级第二）
-      const hasPickedUpPhotoPiece = this.storyManager.getFlag('interacted_thirdson_photo');
-      const hasCompletedPhotoPieceTalk = this.storyManager.getFlag('photopiece_talk_completed');
-      if (hasPickedUpPhotoPiece && !hasCompletedPhotoPieceTalk) {
-        // 拾取全家福碎片后第一次对话，触发碎片对话
-        const photoPieceDialogue = getPhotoPieceDialogue(this.locale);
+      // 检查是否两样都齐了，触发深度情感对话
+      const hasCompletedDeepTalk = this.storyManager.getFlag('deeptalk_completed');
+      const currentQuestForDeepTalk = this.questManager.getCurrentQuest();
+      if (currentQuestForDeepTalk && currentQuestForDeepTalk.id === 'quest_talk_deep' && !hasCompletedDeepTalk) {
+        const deepTalkDialogue = getDeepTalkDialogue(this.locale);
         this.isInDialogue = true;
-        this.dialogueSystem.start(photoPieceDialogue, () => {
+        this.dialogueSystem.start(deepTalkDialogue, () => {
           this.isInDialogue = false;
-          // 标记碎片对话已完成
-          this.storyManager.setFlag('photopiece_talk_completed', true);
-          // 完成"告知王爷爷"任务
+          this.storyManager.setFlag('deeptalk_completed', true);
           const currentQuest = this.questManager.getCurrentQuest();
-          if (currentQuest && currentQuest.id === 'quest_talk_after_photo_piece') {
+          if (currentQuest && currentQuest.id === 'quest_talk_deep') {
             this.questManager.completeCurrentQuest();
+            this.questManager.jumpToQuest('quest_find_photo_piece');
           }
-          // 触发"摘石榴"任务（在下一个任务循环中）
-          setTimeout(() => {
-            const nextQuest = this.questManager.getCurrentQuest();
-            if (nextQuest && nextQuest.id === 'quest_pick_pomegranate') {
-              // 任务已自动触发
-            }
-          }, 100);
-          // 设置对话冷却
           this.dialogueCooldown = true;
           this.pointerLockJustActivated = true;
           setTimeout(() => {
@@ -2286,6 +2333,68 @@ export default {
             this.pointerLockJustActivated = false;
           }, 200);
         }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否找到碎片，触发收尾对话（第一部分：拼图前）
+      const hasCompletedPhotoPieceTalk = this.storyManager.getFlag('photopiece_talk_completed');
+      const hasPlayedPhotoPiecePart1 = this.storyManager.getFlag('photopiece_part1_done');
+      const currentQuestForClosure = this.questManager.getCurrentQuest();
+      if (currentQuestForClosure && currentQuestForClosure.id === 'quest_find_photo_piece' && !hasCompletedPhotoPieceTalk) {
+        if (!hasPlayedPhotoPiecePart1) {
+          // 第一部分对话 → 弹出拼图
+          const photoPieceDialogue = getPhotoPieceDialogue(this.locale);
+          this.isInDialogue = true;
+          this.dialogueSystem.start(photoPieceDialogue, () => {
+            this.isInDialogue = false;
+            this.storyManager.setFlag('photopiece_part1_done', true);
+            this.dialogueCooldown = true;
+            // 先设状态防止ESC面板趁虚而入，再释放指针
+            this.showFamilyPuzzle = true;
+            this.isInPuzzle = true;
+            if (document.pointerLockElement) {
+              document.exitPointerLock();
+            }
+            setTimeout(() => {
+              this.dialogueCooldown = false;
+            }, 300);
+          }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        } else if (this.storyManager.getFlag('puzzle_completed') && !this.storyManager.getFlag('ink_grinding_done')) {
+          // 拼图已完成但还没磨墨 → 播放第二部分a对话 → 弹出磨墨
+          const part2aDialogue = getPhotoPieceDialoguePart2a(this.locale);
+          this.isInDialogue = true;
+          this.dialogueSystem.start(part2aDialogue, () => {
+            this.isInDialogue = false;
+            this.dialogueCooldown = true;
+            this.showInkGrinding = true;
+            this.isInInkGrinding = true;
+            if (document.pointerLockElement) {
+              document.exitPointerLock();
+            }
+            setTimeout(() => {
+              this.dialogueCooldown = false;
+            }, 300);
+          }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        } else if (this.storyManager.getFlag('puzzle_completed') && this.storyManager.getFlag('ink_grinding_done')) {
+          // 拼图+磨墨都完成了 → 播放第二部分b对话 → 完成剧情
+          const part2bDialogue = getPhotoPieceDialoguePart2b(this.locale);
+          this.isInDialogue = true;
+          this.dialogueSystem.start(part2bDialogue, () => {
+            this.isInDialogue = false;
+            this.storyManager.setFlag('photopiece_talk_completed', true);
+            const currentQuest = this.questManager.getCurrentQuest();
+            if (currentQuest && currentQuest.id === 'quest_find_photo_piece') {
+              this.questManager.completeCurrentQuest();
+              this.questManager.jumpToQuest('quest_pick_pomegranate');
+            }
+            this.dialogueCooldown = true;
+            this.pointerLockJustActivated = true;
+            setTimeout(() => {
+              this.dialogueCooldown = false;
+              this.pointerLockJustActivated = false;
+            }, 200);
+          }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        }
         return;
       }
 
@@ -2308,10 +2417,11 @@ export default {
         return;
       }
 
-      // 检查是否已拾取钢笔（全家福对话优先级第二）
-      const hasPickedUpPen = this.storyManager.getFlag('interacted_pen');
+      // 检查是否已拾取毛笔（全家福对话优先级第二）
+      const hasPickedUpPen = this.storyManager.getFlag('interacted_brush');
       const hasCompletedFamilyPhotoTalk = this.storyManager.getFlag('familyphoto_talk_completed');
-      if (hasPickedUpPen && !hasCompletedFamilyPhotoTalk) {
+      const currentQuestForPhoto = this.questManager.getCurrentQuest();
+      if (hasPickedUpPen && !hasCompletedFamilyPhotoTalk && currentQuestForPhoto && currentQuestForPhoto.id === 'quest_talk_about_photo') {
         // 拾取钢笔后第一次对话，触发全家福对话
         const familyPhotoDialogue = getFamilyPhotoDialogue(this.locale);
         this.isInDialogue = true;
@@ -2323,6 +2433,14 @@ export default {
           const currentQuest = this.questManager.getCurrentQuest();
           if (currentQuest && currentQuest.id === 'quest_talk_about_photo') {
             this.questManager.completeCurrentQuest();
+            // 判断是不是第二轮：如果两个物品都找到了，推进主线；否则去找墨锭
+            if (this.storyManager.getFlag('interacted_inkstick')) {
+              // 第二轮对话，两样都齐了，推进深度对话
+              this.questManager.jumpToQuest('quest_talk_deep');
+            } else {
+              // 第一轮对话，去找墨锭
+              this.questManager.jumpToQuest('quest_find_inkstick');
+            }
           }
           // 设置对话冷却
           this.dialogueCooldown = true;
@@ -2344,6 +2462,39 @@ export default {
         this.dialogueSystem.start(shortDialogue, () => {
           this.isInDialogue = false;
           // 设置对话冷却
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
+        }, { avatarOverride: '/photo/Character2D/oldman_sad.webp', playerAvatarOverride: '/photo/Character2D/me_sad.webp' });
+        return;
+      }
+
+      // 检查是否拾取了墨锭（墨锭对话优先级第三）
+      const hasPickedUpInkStick = this.storyManager.getFlag('interacted_inkstick');
+      const hasCompletedInkStickTalk = this.storyManager.getFlag('inkstick_talk_completed');
+      const currentQuestForInkStick = this.questManager.getCurrentQuest();
+      if (hasPickedUpInkStick && !hasCompletedInkStickTalk && currentQuestForInkStick && currentQuestForInkStick.id === 'quest_talk_about_ink_stick') {
+        const inkStickDialogue = getInkStickDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(inkStickDialogue, () => {
+          this.isInDialogue = false;
+          this.storyManager.setFlag('inkstick_talk_completed', true);
+          // 完成"拿着墨锭去找王爷爷聊聊"任务
+          const currentQuest = this.questManager.getCurrentQuest();
+          if (currentQuest && currentQuest.id === 'quest_talk_about_ink_stick') {
+            this.questManager.completeCurrentQuest();
+            // 判断是不是第二轮：如果两个物品都找到了，推进主线；否则去找毛笔
+            if (this.storyManager.getFlag('interacted_brush')) {
+              // 第二轮对话，两样都齐了，推进深度对话
+              this.questManager.jumpToQuest('quest_talk_deep');
+            } else {
+              // 第一轮对话，去找毛笔
+              this.questManager.jumpToQuest('quest_find_brush');
+            }
+          }
           this.dialogueCooldown = true;
           this.pointerLockJustActivated = true;
           setTimeout(() => {
@@ -2761,6 +2912,8 @@ export default {
           if (saveData.storyFlags) {
             this.storyManager.loadFlags(saveData.storyFlags);
           }
+          // 根据恢复的剧情flag更新王爷爷位置
+          this.updateGrandpaPosition();
           // 恢复收集物品（当前游戏会话）
           console.log('准备恢复收集物品, collectionSystem存在:', !!this.collectionSystem);
           console.log('存档中的收集数据:', saveData.collectionData);
@@ -2982,10 +3135,10 @@ export default {
         this.handleFamilyBookInteract();
       } else if (this.currentInteraction.id === 'taohe') {
         this.handleTaoheInteract();
-      } else if (this.currentInteraction.id === 'pen') {
-        this.handlePenInteract();
-      } else if (this.currentInteraction.id === 'thirdson_photo') {
-        this.handleThirdSonPhotoInteract();
+      } else if (this.currentInteraction.id === 'brush') {
+        this.handleBrushInteract();
+      } else if (this.currentInteraction.id === 'inkstick') {
+        this.handleInkStickInteract();
       } else if (this.currentInteraction.id === 'jianzi') {
         this.handleJianziInteract();
       } else if (this.currentInteraction.id === 'diqi') {
@@ -3038,22 +3191,29 @@ export default {
     },
 
     // 更新王爷爷位置和交互点
+    getGrandpaColliderPos(location) {
+      // 碰撞体偏移：y 方向 +1.5 是圆柱体半高
+      if (location === 'chuihuamen') {
+        return { x: 6, y: 14.5 + 1.5, z: -11 };
+      } else if (location === 'mainhouse') {
+        return { x: 4, y: 15.6 + 1.5, z: 50 };
+      }
+      return { x: -2, y: 14.5 + 1.5, z: -36 };
+    },
+
     updateGrandpaPosition() {
       const location = this.storyManager.getGrandpaLocation();
 
       if (location === 'chuihuamen') {
-        // 王爷爷移动到垂花门
         if (this.oldman) {
           this.oldman.position.set(6, 14.5, -11);
-          this.oldman.rotation.y = Math.PI / 2 + Math.PI + Math.PI / 6; // 向左旋转45度
+          this.oldman.rotation.y = Math.PI / 2 + Math.PI + Math.PI / 6;
         }
-        // 更新交互点位置到垂花门
         const oldmanPoint = interactionPoints.find(p => p.id === 'oldman');
         if (oldmanPoint) {
           oldmanPoint.position = { x: 6, y: 14.5, z: -11 };
         }
       } else if (location === 'gate') {
-        // 王爷爷在大门（默认位置）
         if (this.oldman) {
           this.oldman.position.set(-2, 14.5, -36);
         }
@@ -3062,15 +3222,19 @@ export default {
           oldmanPoint.position = { x: -2, y: 14.0, z: -36 };
         }
       } else if (location === 'mainhouse') {
-        // 王爷爷在正房
         if (this.oldman) {
           this.oldman.position.set(4, 15.6, 50);
         }
-        // 更新交互点位置到正房
         const oldmanPoint = interactionPoints.find(p => p.id === 'oldman');
         if (oldmanPoint) {
           oldmanPoint.position = { x: 4, y: 15.7, z: 50 };
         }
+      }
+
+      // 同步更新碰撞体位置
+      if (this.oldmanCollider) {
+        const colliderPos = this.getGrandpaColliderPos(location);
+        this.oldmanCollider.setTranslation({ x: colliderPos.x, y: colliderPos.y, z: colliderPos.z });
       }
     },
 
@@ -3167,77 +3331,113 @@ export default {
 
     // 处理钢笔交互
     // 创建钢笔高亮描边
-    createPenOutline() {
-      if (!this.pen) return;
-      // 创建描边组
-      this.penOutline = new THREE.Group();
-      this.penOutline.position.copy(this.pen.position);
-      this.penOutline.rotation.copy(this.pen.rotation);
-      this.penOutline.scale.copy(this.pen.scale);
-      // 创建描边材质
+    // 创建毛笔高亮描边
+    createBrushOutline() {
+      if (!this.brush) return;
+      this.brushOutline = new THREE.Group();
+      this.brushOutline.position.copy(this.brush.position);
+      this.brushOutline.rotation.copy(this.brush.rotation);
+      this.brushOutline.scale.copy(this.brush.scale);
       const outlineMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffd700, // 金色
+        color: 0xffd700,
         side: THREE.BackSide,
         transparent: true,
         opacity: 0.8
       });
-      this.pen.traverse((child) => {
+      this.brush.traverse((child) => {
         if (child.isMesh) {
           const outlineMesh = new THREE.Mesh(child.geometry, outlineMaterial);
           outlineMesh.scale.multiplyScalar(1.05);
           outlineMesh.position.copy(child.position);
           outlineMesh.rotation.copy(child.rotation);
-          this.penOutline.add(outlineMesh);
+          this.brushOutline.add(outlineMesh);
         }
       });
-      // 将描边添加到场景
-      this.pen.parent.add(this.penOutline);
+      this.brush.parent.add(this.brushOutline);
     },
 
-    handlePenInteract() {
+    // 处理毛笔交互
+    handleBrushInteract() {
       if (this.dialogueSystem.isTipsShowing()) return;
-      // 标记已交互（使交互点消失）
+      this.storyManager.setFlag('interacted_brush', true);
       this.storyManager.setFlag('interacted_pen', true);
-      // 解锁收集物
-      this.unlockCollectionItem('pen');
-      // 显示提示（从storyData获取）
-      const tipsText = getTipsText(this.locale, 'pen');
+      const tipsText = getTipsText(this.locale, 'brush');
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        // 隐藏钢笔模型和描边
-        if (this.pen) {
-          this.pen.visible = false;
+        if (this.brush) {
+          this.brush.visible = false;
         }
-        if (this.penOutline) {
-          this.penOutline.visible = false;
+        if (this.brushOutline) {
+          this.brushOutline.visible = false;
         }
-        // 完成"寻找钢笔"任务，自动开始"聊聊全家福"任务
+        // 根据当前任务推进
         const currentQuest = this.questManager.getCurrentQuest();
         if (currentQuest && currentQuest.id === 'quest_find_pen') {
+          // 第一轮找到毛笔 → 推进到全家福对话
           this.questManager.completeCurrentQuest();
+        } else if (currentQuest && currentQuest.id === 'quest_find_brush') {
+          // 第二轮找到毛笔（墨锭先找到过）→ 跳到深度对话
+          this.questManager.completeCurrentQuest();
+          this.questManager.jumpToQuest('quest_talk_deep');
         }
       });
     },
 
-    // 处理全家福碎片交互
-    handleThirdSonPhotoInteract() {
+    // 创建墨锭高亮描边
+    createInkStickOutline() {
+      if (!this.inkStick) return;
+      this.inkStickOutline = new THREE.Group();
+      this.inkStickOutline.position.copy(this.inkStick.position);
+      this.inkStickOutline.rotation.copy(this.inkStick.rotation);
+      this.inkStickOutline.scale.copy(this.inkStick.scale);
+      const outlineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffd700,
+        side: THREE.BackSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      this.inkStick.traverse((child) => {
+        if (child.isMesh) {
+          const outlineMesh = new THREE.Mesh(child.geometry, outlineMaterial);
+          outlineMesh.scale.multiplyScalar(1.05);
+          outlineMesh.position.copy(child.position);
+          outlineMesh.rotation.copy(child.rotation);
+          this.inkStickOutline.add(outlineMesh);
+        }
+      });
+      this.inkStick.parent.add(this.inkStickOutline);
+    },
+
+    // 处理墨锭交互
+    handleInkStickInteract() {
       if (this.dialogueSystem.isTipsShowing()) return;
-      // 标记已交互（使交互点消失）
-      this.storyManager.setFlag('interacted_thirdson_photo', true);
-      // 显示提示
-      const tipsText = getTipsText(this.locale, 'thirdson_photo');
+      this.storyManager.setFlag('interacted_inkstick', true);
+      const tipsText = getTipsText(this.locale, 'inkstick');
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        // 隐藏照片
+        if (this.inkStick) {
+          this.inkStick.visible = false;
+        }
+        if (this.inkStickOutline) {
+          this.inkStickOutline.visible = false;
+        }
+        // 同时收集书桌上的照片碎片（都在西厢房）
+        this.storyManager.setFlag('interacted_thirdson_photo', true);
         if (this.thirdSonPhoto) {
           this.thirdSonPhoto.visible = false;
         }
-        // 完成"寻找全家福碎片"任务
+        // 根据当前任务推进
         const currentQuest = this.questManager.getCurrentQuest();
-        if (currentQuest && currentQuest.id === 'quest_find_photo_piece') {
+        if (currentQuest && currentQuest.id === 'quest_find_pen') {
+          // 第一轮找到墨锭 → 跳到墨锭对话
           this.questManager.completeCurrentQuest();
+          this.questManager.jumpToQuest('quest_talk_about_ink_stick');
+        } else if (currentQuest && currentQuest.id === 'quest_find_inkstick') {
+          // 第二轮找到墨锭（毛笔先找到过）→ 跳到深度对话
+          this.questManager.completeCurrentQuest();
+          this.questManager.jumpToQuest('quest_talk_deep');
         }
       });
     },
@@ -3427,6 +3627,27 @@ export default {
     handleTeaCeremonyClose() {
       this.showTeaCeremony = false;
       // 重新锁定鼠标
+      this.requestLock();
+    },
+
+    // 全家福拼图完成
+    handlePuzzleComplete() {
+      this.showFamilyPuzzle = false;
+      this.isInPuzzle = false;
+      // 标记拼图已完成，等待玩家手动找王爷爷触发第二部分对话
+      this.storyManager.setFlag('puzzle_completed', true);
+      this.pointerLockJustActivated = true;
+      setTimeout(() => { this.pointerLockJustActivated = false; }, 200);
+      this.requestLock();
+    },
+
+    // 磨墨完成
+    handleInkGrindingComplete() {
+      this.showInkGrinding = false;
+      this.isInInkGrinding = false;
+      this.storyManager.setFlag('ink_grinding_done', true);
+      this.pointerLockJustActivated = true;
+      setTimeout(() => { this.pointerLockJustActivated = false; }, 200);
       this.requestLock();
     },
 

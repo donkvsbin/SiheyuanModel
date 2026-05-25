@@ -60,6 +60,18 @@ export class QuestManager {
         }
     }
 
+    // 跳转到指定任务
+    jumpToQuest(questId) {
+        const index = this.quests.findIndex(q => q.id === questId);
+        if (index >= 0) {
+            this.currentQuestIndex = index;
+            const currentQuest = this.getCurrentQuest();
+            this.notify('questStart', currentQuest);
+            return true;
+        }
+        return false;
+    }
+
     // 检查特定任务是否完成
     isQuestCompleted(questId) {
         return this.completedQuests.some(q => q.id === questId);

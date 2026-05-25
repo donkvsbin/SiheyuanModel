@@ -44,7 +44,7 @@
           </div>
         </div>
 
-        <div class="hint-text" v-if="ready && !completed && !isDragging">
+        <div class="hint-text" v-if="ready && !completed">
           <span class="hint-icon">🖱</span> 拖动右下角的照片碎片，拼入图中
         </div>
 

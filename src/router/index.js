@@ -6,12 +6,12 @@ const router = createRouter({
     {
       path: '/ych',
       name: 'YchGame',
-      component: () => import('@/views/YchGame.vue'),
+      component: () => import('@/components/YchGame.vue'),
     },
     {
       path: '/family',
       name: 'FamilyPuzzle',
-      component: () => import('@/views/FamilyPuzzle.vue'),
+      component: () => import('@/components/FamilyPuzzle.vue'),
     },
   ],
 })

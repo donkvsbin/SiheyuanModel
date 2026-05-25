@@ -127,10 +127,10 @@ export function getFamilyBookShortDialogue(locale) {
 export function getFamilyPhotoShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "去吧，全家福碎片好像是在西厢房。" }
+            { speaker: "王爷爷", text: "去西厢房看看吧，墨锭和别的东西都在那边。" }
         ],
         en: [
-            { speaker: "Grandpa Wang", text: "Go ahead, the family photo piece seems to be in the West Wing." }
+            { speaker: "Grandpa Wang", text: "Go check the West Wing. The ink stick and other things are there." }
         ]
     };
     return shortDialogues[locale] || shortDialogues['zh'];
@@ -239,92 +239,120 @@ export function getFamilyBookDialogue(locale) {
     return dialogues[locale] || dialogues['zh'];
 }
 
-// 全家福对话（拾取钢笔后与王爷爷的对话）
+// 毛笔首次对话（拾取毛笔后，未拿墨锭）
 export function getFamilyPhotoDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "全家福……这是哪年？" },
-            { speaker: "王爷爷", text: "这个是我大儿子，小时候最黏我。现在一年一个电话。" },
-            { speaker: "王爷爷", text: "这个是你妈，那时候扎着两条小辫子……那年石榴刚种下没几年。" },
-            { speaker: "你", text: "人都在。" },
-            { speaker: "王爷爷", text: "嗯，都在。" },
-            { speaker: "王爷爷", text: "拍照那天我还嫌他们站得歪。现在想想，歪点也挺好。" },
-            { speaker: "你", text: "这里缺了一块……是三舅吗？" },
-            { speaker: "王爷爷", text: "是。我撕的。" },
-            { speaker: "你", text: "您自己撕的？" },
-            { speaker: "王爷爷", text: "气头上，什么都敢撕。气散了，就只剩后悔。" },
-            { speaker: "你", text: "当时吵得很凶吗？" },
-            { speaker: "王爷爷", text: "他一句话就把我点着了。" },
-            { speaker: "你", text: "他说什么？" },
-            { speaker: "王爷爷", text: "他说卖院子。" },
-            { speaker: "你", text: "卖院子？" },
-            { speaker: "王爷爷", text: "换楼房，电梯上下，离医院也近。听着挺好。" },
-            { speaker: "你", text: "那您为什么不同意？" },
-            { speaker: "王爷爷", text: "我怕的不是楼房。" },
-            { speaker: "王爷爷", text: "我怕以后谁想回来，都不知道该往哪儿回。" },
-            { speaker: "你", text: "所以您说——院子不是拿来赌气的。" },
-            { speaker: "王爷爷", text: "嗯。" },
-            { speaker: "你", text: "那是拿来干嘛的？" },
-            { speaker: "王爷爷", text: "是拿来让人回来的。" },
-            { speaker: "你", text: "后来……你们就一直这样僵着？" },
-            { speaker: "王爷爷", text: "僵着。" },
-            { speaker: "你", text: "您后悔吗？" },
-            { speaker: "王爷爷", text: "后悔。" },
-            { speaker: "王爷爷", text: "但嘴硬了一辈子，真要软下来，反而不知道怎么开口。" },
-            { speaker: "你", text: "那这一角……" },
-            { speaker: "王爷爷", text: "当时随手一扔，不知道落哪儿了。" },
-            { speaker: "你", text: "会不会还在院子里？" },
-            { speaker: "王爷爷", text: "西厢房那边……旧东西多。你去找找看。" },
-            { speaker: "王爷爷", text: "要是找得着，就把它拼回去。" },
-            { speaker: "你", text: "好。" }
+            { speaker: "王爷爷", text: "这支毛笔……有些年头了。" },
+            { speaker: "王爷爷", text: "笔杆上还有旧墨迹。老三小时候练字，用的就是这支。" },
+            { speaker: "你", text: "他字写得好吗？" },
+            { speaker: "王爷爷", text: "好。比我好。笔画工整，有耐心的时候能写一整篇。" },
+            { speaker: "王爷爷", text: "就是不爱磨墨。磨两下就喊手酸，每次都要我催。" },
+            { speaker: "你", text: "后来您催不动了？" },
+            { speaker: "王爷爷", text: "后来他长大了，也不用我催了。" },
+            { speaker: "王爷爷", text: "墨锭还在西厢房。那是块好墨，松烟制的。你去拿来，这笔才能用。" },
+            { speaker: "你", text: "好，我去找找。" }
         ],
         en: [
-            { speaker: "Grandpa Wang", text: "Family photo... which year was this?" },
-            { speaker: "Grandpa Wang", text: "This is my eldest son. He was closest to me when he was little. Now, one phone call a year." },
-            { speaker: "Grandpa Wang", text: "This is your mother, with two braids back then... The pomegranate tree had just been planted a few years earlier." },
-            { speaker: "You", text: "Everyone is here." },
-            { speaker: "Grandpa Wang", text: "Yes, everyone." },
-            { speaker: "Grandpa Wang", text: "I complained they were standing crooked that day. Now I think, crooked is fine too." },
-            { speaker: "You", text: "There's a piece missing here... Is it the third uncle?" },
-            { speaker: "Grandpa Wang", text: "Yes. I tore it." },
-            { speaker: "You", text: "You tore it yourself?" },
-            { speaker: "Grandpa Wang", text: "In anger, you dare to tear anything. When the anger fades, only regret remains." },
-            { speaker: "You", text: "Was the fight very bad?" },
-            { speaker: "Grandpa Wang", text: "One sentence from him set me off." },
-            { speaker: "You", text: "What did he say?" },
-            { speaker: "Grandpa Wang", text: "He said sell the courtyard." },
-            { speaker: "You", text: "Sell the courtyard?" },
-            { speaker: "Grandpa Wang", text: "Exchange it for an apartment building, with elevators, close to the hospital. Sounds good." },
-            { speaker: "You", text: "Then why didn't you agree?" },
-            { speaker: "Grandpa Wang", text: "I wasn't afraid of the apartment building." },
-            { speaker: "Grandpa Wang", text: "I was afraid that when someone wants to come back, they won't know where to return to." },
-            { speaker: "You", text: "So you said—the courtyard is not for selling." },
-            { speaker: "Grandpa Wang", text: "Yes." },
-            { speaker: "You", text: "Then what is it for?" },
-            { speaker: "Grandpa Wang", text: "It's for people to come back to." },
-            { speaker: "You", text: "Later... you two just stayed like this?" },
-            { speaker: "Grandpa Wang", text: "Stiff." },
-            { speaker: "You", text: "Do you regret it?" },
-            { speaker: "Grandpa Wang", text: "I regret it." },
-            { speaker: "Grandpa Wang", text: "But I've been stubborn all my life. When it comes time to soften, I don't know how to open my mouth." },
-            { speaker: "You", text: "Then this corner..." },
-            { speaker: "Grandpa Wang", text: "I threw it away casually back then. Don't know where it landed." },
-            { speaker: "You", text: "Could it still be in the courtyard?" },
-            { speaker: "Grandpa Wang", text: "The West Wing... lots of old things there. Go take a look." },
-            { speaker: "Grandpa Wang", text: "If you find it, put it back together." },
-            { speaker: "You", text: "Okay." }
+            { speaker: "Grandpa Wang", text: "This brush... it's been many years." },
+            { speaker: "Grandpa Wang", text: "There's still old ink on the handle. Third used this one when he practiced calligraphy as a child." },
+            { speaker: "You", text: "Was his handwriting good?" },
+            { speaker: "Grandpa Wang", text: "Good. Better than mine. Neat strokes — when he had patience, he could write a whole page." },
+            { speaker: "Grandpa Wang", text: "But he hated grinding ink. After two rubs he'd complain his hand hurt. I always had to push him." },
+            { speaker: "You", text: "And later you stopped pushing?" },
+            { speaker: "Grandpa Wang", text: "Later he grew up. He didn't need me to push anymore." },
+            { speaker: "Grandpa Wang", text: "The ink stick is still in the West Wing. It's good ink, made from pine soot. Go get it — this brush won't write without it." },
+            { speaker: "You", text: "Alright. I'll go look." }
         ]
     };
     return dialogues[locale] || dialogues['zh'];
 }
 
-// 找到全家福碎片后与爷爷的对话
+// 墨锭首次对话（拾取墨锭后，未拿毛笔）
+export function getInkStickDialogue(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "王爷爷", text: "哎，是这块。松烟墨。", expression: "接过墨锭，用手指摩挲" },
+            { speaker: "王爷爷", text: "这墨写出来偏冷，泛青。好墨，就是得慢慢磨。" },
+            { speaker: "你", text: "磨墨很费工夫吗？" },
+            { speaker: "王爷爷", text: "急不得。水多了淡，水少了涩。心浮气躁，磨出来的墨也不匀。" },
+            { speaker: "王爷爷", text: "老三就是坐不住。磨两下就喊累，说用瓶装墨汁不就行了。" },
+            { speaker: "你", text: "那您怎么说？" },
+            { speaker: "王爷爷", text: "我说，磨墨磨的不是墨，是性子。急了写不出好字。" },
+            { speaker: "王爷爷", text: "他嘴上不服，后来……倒也听进去了。就是不知道现在还练不练字。" },
+            { speaker: "你", text: "书桌上那块撕下来的照片……", expression: "望向书桌的方向" },
+            { speaker: "王爷爷", text: "嗯。那个不急。先把东西找齐。毛笔在东厢房，以前那儿是书房。", expression: "摆摆手，没有多提" },
+            { speaker: "你", text: "好，我去拿。" }
+        ],
+        en: [
+            { speaker: "Grandpa Wang", text: "Ah, this one. Pine soot ink.", expression: "taking the ink stick, rubbing it with his fingers" },
+            { speaker: "Grandpa Wang", text: "The ink from this writes cool, with a bluish cast. Good ink, but you have to grind it slowly." },
+            { speaker: "You", text: "Does grinding ink take a lot of effort?" },
+            { speaker: "Grandpa Wang", text: "Can't be rushed. Too much water and it's thin, too little and it's gritty. If your mind is restless, the ink won't be even either." },
+            { speaker: "Grandpa Wang", text: "Third could never sit still for it. After two rubs he'd say his arm hurt. 'Why not just use bottled ink?'" },
+            { speaker: "You", text: "What did you tell him?" },
+            { speaker: "Grandpa Wang", text: "I told him, grinding ink isn't about the ink — it's about settling your temperament. If you're impatient, you can't write good characters." },
+            { speaker: "Grandpa Wang", text: "He wouldn't admit it at the time, but later... it did sink in. Though I wonder if he still practices." },
+            { speaker: "You", text: "That torn photo on the desk...", expression: "glancing toward the desk" },
+            { speaker: "Grandpa Wang", text: "Mm. That can wait. Let's gather everything first. The brush is in the East Wing — that used to be the study.", expression: "waving his hand, not saying more" },
+            { speaker: "You", text: "Alright, I'll go get it." }
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
+}
+
+// 两样物品都找到后与爷爷的深度对话（共享情感核心）
+export function getDeepTalkDialogue(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "王爷爷", text: "笔也找到了，墨也找到了。好……好。", expression: "看着桌上的毛笔和墨锭，点了点头" },
+            { speaker: "王爷爷", text: "这笔，这笔上刻的是你妈妈的名字。她出生那天，我特意刻上去的。那时候觉得，名字刻在笔上，人就忘不了根。" },
+            { speaker: "你", text: "她很少提这些。" },
+            { speaker: "王爷爷", text: "不提不打紧。东西在，记性就在。" },
+            { speaker: "王爷爷", text: "这墨也是你三舅挑的。他拿着零花钱跑了三家店，说这块最黑。其实小孩子哪懂墨的好坏，但那份心意比什么都好。" },
+            { speaker: "你", text: "他那时候多大？" },
+            { speaker: "王爷爷", text: "十一二岁。比你还小。那时候他最黏我，写字要挨着，看书要挨着。后来……后来就不挨了。" },
+            { speaker: "你", text: "是因为卖院子的事吗？", expression: "轻声" },
+            { speaker: "王爷爷", text: "那天他站在院子里，跟我说换楼房、住电梯房。我一听就炸了。不是气他说要卖——是气他不懂，这个院子对他意味着什么。", expression: "声音沉下去" },
+            { speaker: "王爷爷", text: "我一把扯过桌上的全家福，撕了他那一角。我说，你既然不想回来，那这张照片上也不必留你了。" },
+            { speaker: "你", text: "您后悔说这句话吗？" },
+            { speaker: "王爷爷", text: "后悔。后悔了一万遍。但话出了口，就像撕了角的照片——你明知道缺一块，就是补不回来。" },
+            { speaker: "", text: "（王爷爷拿起墨锭，慢慢转了一圈。）" },
+            { speaker: "王爷爷", text: "笔要蘸墨才能写字。人也一样，得有个东西牵着，才走不远。" },
+            { speaker: "你", text: "那这张照片呢？", expression: "拿出那片撕下来的照片一角" },
+            { speaker: "王爷爷", text: "……你找到了？在西厢房？", expression: "愣了一下" },
+            { speaker: "你", text: "嗯。就在书桌旁边。" },
+            { speaker: "王爷爷", text: "好。东西齐了。照片、笔、墨……都在这儿了。来，把它拼回去。", expression: "把全家福从抽屉里拿出来，放在桌上" }
+        ],
+        en: [
+            { speaker: "Grandpa Wang", text: "The brush, found. The ink, found too. Good... good.", expression: "looking at the brush and ink stick on the table, nodding" },
+            { speaker: "Grandpa Wang", text: "This brush — your mother's name is carved on it. I carved it the day she was born. I thought, carve the name on the brush, and the person won't forget their roots." },
+            { speaker: "You", text: "She rarely talks about these things." },
+            { speaker: "Grandpa Wang", text: "It's fine if she doesn't. The things are here. The memory stays." },
+            { speaker: "Grandpa Wang", text: "This ink stick — your third uncle picked it. He went to three shops with his pocket money and said this one was the blackest. What does a child know about ink quality? But that heart, that intention — it's worth more than anything." },
+            { speaker: "You", text: "How old was he then?" },
+            { speaker: "Grandpa Wang", text: "Eleven or twelve. Younger than you. Back then he clung to me most — writing next to me, reading next to me. Later... later, he stopped." },
+            { speaker: "You", text: "Was it because of selling the courtyard?", expression: "softly" },
+            { speaker: "Grandpa Wang", text: "That day he stood in the courtyard and told me to swap it for an apartment, live in a building with elevators. I exploded. It wasn't that he said sell — it was that he didn't understand what this courtyard means to him.", expression: "voice sinking" },
+            { speaker: "Grandpa Wang", text: "I grabbed the family photo from the table and tore off his corner. I said, if you don't want to come back, there's no need to keep you in this picture either." },
+            { speaker: "You", text: "Do you regret saying that?" },
+            { speaker: "Grandpa Wang", text: "I regret it. Ten thousand times over. But words once spoken are like a torn photo — you know something is missing, and you can't just put it back." },
+            { speaker: "", text: "(Grandpa Wang picks up the ink stick and slowly turns it in his hand.)" },
+            { speaker: "Grandpa Wang", text: "A brush needs ink to write. People are the same — you need something to hold onto, or you drift too far." },
+            { speaker: "You", text: "And the photo?", expression: "taking out the torn corner of the photo" },
+            { speaker: "Grandpa Wang", text: "...You found it? In the West Wing?", expression: "taken aback" },
+            { speaker: "You", text: "Yes. Right next to the desk." },
+            { speaker: "Grandpa Wang", text: "Good. Everything's here. The photo, the brush, the ink... all of it. Come — piece it back together.", expression: "taking the family photo out of the drawer, placing it on the table" }
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
+}
+
+// 找到全家福碎片后与爷爷的对话（第一部分：拼图前）
 export function getPhotoPieceDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "……还在啊。" },
-            { speaker: "你", text: "我在西厢房的桌子上找到的，压在旧报纸下面。" },
-            { speaker: "王爷爷", text: "人老了，连生气都没当年那么大声。（苦笑）" },
+            { speaker: "王爷爷", text: "……还在啊。人老了，连生气都没当年那么大声。", expression: "苦笑" },
             { speaker: "王爷爷", text: "那天他站在这儿，跟我说，'爸，院子太旧了，卖了换套楼房，您和妈住电梯房。'" },
             { speaker: "你", text: "听起来……也不是坏事。" },
             { speaker: "王爷爷", text: "是啊，不是坏事。可我当时就觉得，他是要把根拔了。这座院子承载着我太多回忆了。" },
@@ -340,21 +368,10 @@ export function getPhotoPieceDialogue(locale) {
             { speaker: "你", text: "都不是。" },
             { speaker: "你", text: "是替缺的那一块来的。" },
             { speaker: "", text: "（风吹过院子，石榴树叶轻响。）" },
-            { speaker: "王爷爷", text: "把那一块缺的给我吧。" },
-            { speaker: "你", text: "（递过那缺失的一角照片）" },
-            { speaker: "王爷爷", text: "（王爷爷把照片放在桌上，重新对齐。这一次，三舅的脸完整地接上了。裂痕清清楚楚，但人回到了原位。）" },
-            { speaker: "王爷爷", text: "原来……一直都在。" },
-            { speaker: "王爷爷", text: "照片补上了，名字也该补上。" },
-            { speaker: "你", text: "您还记得怎么写吗？" },
-            { speaker: "王爷爷", text: "（淡淡一笑）记得。是我给他起的。" },
-            { speaker: "王爷爷", text: "写上了，这下不算少人了。门一直开着，就等他们回来吧。" },
-            { speaker: "王爷爷", text: "今年石榴成熟的早，要不要摘几个？" },
-            { speaker: "你", text: "好，别让他自己掉地上。" }
+            { speaker: "王爷爷", text: "这一角我留了这么多年……来，我眼花了手也抖，你来把它拼回去。", expression: "从抽屉里拿出照片和碎片，放在桌上" }
         ],
         en: [
-            { speaker: "Grandpa Wang", text: "...It's still here." },
-            { speaker: "You", text: "I found it on the table in the West Wing, under some old newspapers." },
-            { speaker: "Grandpa Wang", text: "When you get old, even anger isn't as loud as it used to be. (wry smile)" },
+            { speaker: "Grandpa Wang", text: "...It's still here. When you get old, even anger isn't as loud as it used to be.", expression: "wry smile" },
             { speaker: "Grandpa Wang", text: "That day he stood here and told me, 'Dad, the courtyard is too old. Sell it and buy an apartment. You and Mom can live in a building with elevators.'" },
             { speaker: "You", text: "Sounds... not like a bad thing." },
             { speaker: "Grandpa Wang", text: "Yes, not bad. But at that moment, I felt he wanted to uproot us. This courtyard holds too many memories for me." },
@@ -369,14 +386,50 @@ export function getPhotoPieceDialogue(locale) {
             { speaker: "Grandpa Wang", text: "Then this time, did you come for your mother... or for him?" },
             { speaker: "You", text: "Neither." },
             { speaker: "You", text: "I came for the missing piece." },
-            { speaker: "(Wind blows through the courtyard, pomegranate leaves rustling.)", text: "" },
-            { speaker: "Grandpa Wang", text: "Give me that missing piece." },
-            { speaker: "You", text: "(Handing over the missing corner of the photo)" },
-            { speaker: "Grandpa Wang", text: "(Grandpa places the photo on the table and realigns it. This time, the third uncle's face is complete. The crack is clear, but the person is back in place.)" },
+            { speaker: "", text: "(Wind blows through the courtyard, pomegranate leaves rustling.)" },
+            { speaker: "Grandpa Wang", text: "I've kept this corner all these years... Here — my eyes are old, my hands shake. You piece it back together.", expression: "taking out the photo and the torn piece from the drawer, placing them on the table" }
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
+}
+
+// 全家福拼图完成后对话（第二部分：名字、磨墨、摘石榴）
+// 拼图完成后对话第一部分（磨墨前）
+export function getPhotoPieceDialoguePart2a(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "王爷爷", text: "（看着你拼好的照片，手指轻轻划过那道裂痕。）接上了。裂痕清清楚楚，但人回到了原位。", expression: "目光久久停在照片上" },
+            { speaker: "王爷爷", text: "原来……一直都在。" },
+            { speaker: "王爷爷", text: "照片补上了，名字也该补上。" },
+            { speaker: "你", text: "您还记得怎么写吗？" },
+            { speaker: "王爷爷", text: "记得。是我给他起的。", expression: "淡淡一笑" },
+            { speaker: "你", text: "我帮您磨墨吧。" },
+        ],
+        en: [
+            { speaker: "Grandpa Wang", text: "(Looking at the photo you pieced together, his finger gently tracing the crack.) It's joined. The crack is still clear, but the person is back where they belong.", expression: "gaze lingering on the photo" },
             { speaker: "Grandpa Wang", text: "So... it was always here." },
             { speaker: "Grandpa Wang", text: "The photo is mended, the name should be too." },
             { speaker: "You", text: "Do you still remember how to write it?" },
-            { speaker: "Grandpa Wang", text: "(smiling faintly) I remember. I gave him that name." },
+            { speaker: "Grandpa Wang", text: "I remember. I gave him that name.", expression: "smiling faintly" },
+            { speaker: "You", text: "Let me grind the ink for you." },
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
+}
+
+// 拼图完成后对话第二部分（磨墨后）
+export function getPhotoPieceDialoguePart2b(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "王爷爷", text: "你这墨磨得匀。老三小时候没这个耐心，磨两圈就跑出去玩，墨色总是不对。", expression: "看着砚台里的墨，微微点头" },
+            { speaker: "", text: "（你看着王爷爷用笔尖沾满墨汁）" },
+            { speaker: "王爷爷", text: "写上了，这下不算少人了。门一直开着，就等他们回来吧。" },
+            { speaker: "王爷爷", text: "今年石榴成熟的早，要不要摘几个？" },
+            { speaker: "你", text: "好，别让他自己掉地上。" }
+        ],
+        en: [
+            { speaker: "Grandpa Wang", text: "You ground this ink evenly. When Third was young, he had no patience for it — two circles and he'd run off to play. The color was never right.", expression: "looking at the inkstone, nodding slightly" },
+            { speaker: "", text: "(You watch Grandpa Wang dip the brush tip into the ink.)" },
             { speaker: "Grandpa Wang", text: "Written now. No one's missing anymore. The door has always been open, just waiting for them to return." },
             { speaker: "Grandpa Wang", text: "The pomegranates ripened early this year. Want to pick some?" },
             { speaker: "You", text: "Yes, before they fall to the ground." }
@@ -392,7 +445,7 @@ export function getPomegranateShareDialogue(locale) {
             { speaker: "王爷爷", text: "摘了几个？" },
             { speaker: "你", text: "四个。够吗？" },
             { speaker: "王爷爷", text: "够。留几个在树上，鸟儿也得吃。" },
-            { speaker: "", text: "（把石榴递给王爷爷）" },
+            { speaker: "", text: "（交互提示：把石榴递给王爷爷）" },
             { speaker: "王爷爷", text: "这个给你妈带回去。这个……留给老大，他爱吃酸的。这个给老二，她小时候总偷青的吃，酸得皱眉头。这个……" },
             { speaker: "", text: "（他停住了，看着最后一个石榴。）" },
             { speaker: "你", text: "这个给三舅？" },
@@ -411,9 +464,11 @@ export function getPomegranateShareDialogue(locale) {
             { speaker: "", text: "王爷爷还坐在那儿，手里捧着那本家谱。那个石榴静静躺在空马扎上，红得像一盏小灯笼。" },
             { speaker: "王爷爷", text: "走吧，忙你的去。别学我儿子们，飞走了就不回头...（笑）开玩笑的。年轻人，该飞就飞。" },
             { speaker: "你", text: "我会再来的。" },
-            { speaker: "", text: "（摆手）" },
-            { speaker: "王爷爷", text: "来不来都行。记得石榴熟的时候，回来尝一口。" },
-            { speaker: "", text: "（王爷爷独自坐在马扎上，翻着家谱，石榴树的影子落在他身上。远处传来邻居家的电视声，更显得院子安静。）" }
+            { speaker: "你", text: "（掏出手机，对着补好的全家福拍了张照）发给三舅吧。照片补上了，他该看看。" },
+            { speaker: "王爷爷", text: "（沉默片刻，点了点头）……发吧。" },
+            { speaker: "", text: "（你按下发送键。照片穿过屏幕，飞向不知道哪座城市。）" },
+            { speaker: "王爷爷", text: "回去跟你妈说，石榴还结着，有空也回来看看。" },
+            { speaker: "王爷爷", text: "（摆手）来不来都行。记得石榴熟的时候，回来尝一口。" },
         ],
         en: [
             { speaker: "Grandpa Wang", text: "How many did you pick?" },
@@ -438,9 +493,11 @@ export function getPomegranateShareDialogue(locale) {
             { speaker: "", text: "Grandpa is still sitting there, holding the family genealogy. That pomegranate lies quietly on the empty stool, red like a small lantern." },
             { speaker: "Grandpa Wang", text: "Go, attend to your business. Don't be like my sons, flying away and never looking back... (laughs) Just kidding. Young people should fly when they need to." },
             { speaker: "You", text: "I'll come again." },
-            { speaker: "", text: "(Waving hand)" },
-            { speaker: "Grandpa Wang", text: "Come or not, it doesn't matter. Just remember to come back for a taste when the pomegranates are ripe." },
-            { speaker: "", text: "(Grandpa sits alone on the stool, flipping through the genealogy, the shadow of the pomegranate tree falling on him. The sound of the neighbor's TV comes from afar, making the courtyard seem even quieter.)" }
+            { speaker: "You", text: "(Taking out your phone, snapping a photo of the mended family portrait) Send this to Third Uncle. The photo is whole again — he should see it." },
+            { speaker: "Grandpa Wang", text: "(Silent for a moment, then nods) ...Go ahead." },
+            { speaker: "", text: "(You press send. The photo travels through the screen, flying toward some unknown city.)" },
+            { speaker: "Grandpa Wang", text: "Tell your mother — the pomegranates are still bearing fruit. She should come visit too, when she can." },
+            { speaker: "Grandpa Wang", text: "(Waving hand) Come or not, it doesn't matter. Just remember to come back for a taste when the pomegranates are ripe." },
         ]
     };
     return dialogues[locale] || dialogues['zh'];
@@ -545,10 +602,15 @@ export function getTipsText(locale, tipId) {
             zh: "家谱是记录家族成员和血缘关系的重要文献。在传统四合院中，家谱通常由家族长辈保管，记录祖先的名字、生平和家族传承。通过家谱，人们可以了解自己的家族历史和辈分。",
             en: "The family genealogy is an important document recording family members and blood relationships. In traditional siheyuan, the genealogy is usually kept by the family elders, recording the names, life stories, and family heritage of ancestors. Through the genealogy, people can understand their family history and generational status."
         },
-        //钢笔
-        pen: {
-            zh: "你拿起了桌上的那只钢笔，不经意间发现了一张有缺口的全家福。",
-            en: "You picked up the pen on the table and accidentally discovered a family photo with a missing piece."
+        //毛笔
+        brush: {
+            zh: "东厢房的书桌上放着一支旧毛笔。笔杆上还留着墨迹，不知道是多少年前写的字。",
+            en: "An old brush lies on the desk in the East Wing. Ink stains still remain on the shaft — words written who knows how many years ago."
+        },
+        //墨锭
+        inkstick: {
+            zh: "你在西厢房找到了那块黑漆漆的墨锭。沉甸甸的，凑近还能闻到松烟的味道。旁边的书桌上搁着一张人像照，边缘毛毛糙糙的，像是从什么地方撕下来的。",
+            en: "You found the pitch-black ink stick in the West Wing. It's surprisingly heavy, and up close you can still smell the pine soot. On the desk beside it lies a portrait photo, its edges ragged, as if torn from somewhere."
         },
         //全家福碎片
         thirdson_photo: {
@@ -730,9 +792,9 @@ export const interactionPoints = [
         condition: null
     },
     {
-        id: "pen",
-        name: "钢笔",
-        nameEn: "Pen",
+        id: "brush",
+        name: "旧毛笔",
+        nameEn: "Old Brush",
         position: { x: -30, y: 16, z: 16 },
         radius: 2,
         action: "interact",
@@ -740,15 +802,15 @@ export const interactionPoints = [
         condition: "familybook_talk_completed"
     },
     {
-        id: "thirdson_photo",
-        name: "全家福碎片",
-        nameEn: "Family Photo Piece",
-        position: { x: 27, y: 16, z: -7 },
+        id: "inkstick",
+        name: "墨锭",
+        nameEn: "Ink Stick",
+        position: { x: 26, y: 15, z: -7 },
         radius: 2,
         action: "interact",
         once: true,
-        condition: "familyphoto_talk_completed"
-    }
+        condition: "familybook_talk_completed"
+    },
 ];
 
 /**
@@ -803,17 +865,6 @@ export const collectionData = {
                 description: "踢毽子是传统的儿童游戏，在院子里非常常见。",
                 category: "collectible"
             },
-            {
-                id: "pen",
-                name: "钢笔",
-                icon: "",
-                image: "/photo/Collection/Pen.webp",
-                modelPath: "/models/pen.glb",
-                interactionId: "pen",
-                location: "东厢房",
-                description: "王爷爷三儿子小时候写字用的那支钢笔，承载着家族的记忆与思念。",
-                category: "collectible"
-            },
             // 建筑/地点类 - 图鉴系统
             {
                 id: "east_wing",
@@ -822,7 +873,7 @@ export const collectionData = {
                 image: "/photo/Collection/Dongxiangfang.webp",
                 interactionId: "eastwing",
                 location: "四合院东侧",
-                description: "东厢房位于四合院东侧，坐东朝西，是晚辈居住的地方。它与西厢房相对，一东一西，阴阳平衡。东厢房通常比正房略低，体现长幼有序的传统伦理。在这里，你找到了王爷爷三儿子小时候用的钢笔。",
+                description: "东厢房位于四合院东侧，坐东朝西，是晚辈居住的地方。它与西厢房相对，一东一西，阴阳平衡。东厢房通常比正房略低，体现长幼有序的传统伦理。在这里，你找到了王爷爷的旧毛笔。",
                 category: "location"
             },
             {
@@ -915,15 +966,6 @@ export const collectionData = {
                 location: "Inner Courtyard",
                 description: "Kick shuttlecock is a traditional children's game, very common in the courtyard."
             },
-            {
-                id: "pen",
-                name: "Brush Pen",
-                icon: "",
-                image: "/photo/Collection/Pen.webp",
-                interactionId: "pen",
-                location: "East Wing",
-                description: "The brush pen that Grandpa Wang's third son used to write with as a child, carrying the family's memories and longing."
-            },
             // Locations - Encyclopedia System
             {
                 id: "east_wing",
@@ -932,7 +974,7 @@ export const collectionData = {
                 image: "/photo/place/en/EastWing.webp",
                 interactionId: "eastwing",
                 location: "East Side of Courtyard",
-                description: "The East Wing is located on the east side of the courtyard, facing west. It is where the younger generation lives. It faces the West Wing, creating a balance of yin and yang. The East Wing is usually slightly lower than the main house, reflecting the traditional ethics of respecting seniority. Here, you found the pen used by Grandpa Wang's third son as a child.",
+                description: "The East Wing is located on the east side of the courtyard, facing west. It is where the younger generation lives. It faces the West Wing, creating a balance of yin and yang. The East Wing is usually slightly lower than the main house, reflecting the traditional ethics of respecting seniority. Here, you found Grandpa Wang's old brush.",
                 category: "location"
             },
             {
@@ -1030,7 +1072,7 @@ export const questData = {
         {
             id: "quest_find_pen",
             name: "寻找毛笔和墨锭",
-            description: "在院子里找到王爷爷的旧毛笔和墨锭，没有它们，家谱上的字写不下去。"
+            description: "在东西厢房里找到王爷爷的旧毛笔和墨锭，没有它们，家谱上的字写不下去。"
         },
         {
             id: "quest_talk_about_photo",
@@ -1038,14 +1080,29 @@ export const questData = {
             description: "回到正房，与王爷爷聊聊那张有缺口的全家福。"
         },
         {
-            id: "quest_find_photo_piece",
-            name: "寻找全家福碎片",
-            description: "前往西厢房，寻找全家福缺失的那一角。"
+            id: "quest_talk_about_ink_stick",
+            name: "拿着墨锭去找王爷爷聊聊",
+            description: "在西厢房找到了墨锭，拿去给王爷爷看看。"
         },
         {
-            id: "quest_talk_after_photo_piece",
-            name: "告知王爷爷",
-            description: "带着找到的碎片回到正房，告诉王爷爷。"
+            id: "quest_find_inkstick",
+            name: "去西厢房找墨锭",
+            description: "毛笔已经拿到了，王爷爷说墨锭在西厢房。"
+        },
+        {
+            id: "quest_find_brush",
+            name: "去东厢房找毛笔",
+            description: "墨锭已经拿到了，王爷爷说毛笔在东厢房的书房里。"
+        },
+        {
+            id: "quest_talk_deep",
+            name: "两样都齐了，回去找王爷爷",
+            description: "毛笔和墨锭都在手上了，回去找王爷爷吧。"
+        },
+        {
+            id: "quest_find_photo_piece",
+            name: "与王爷爷聊聊",
+            description: ""
         },
         {
             id: "quest_pick_pomegranate",
@@ -1105,14 +1162,29 @@ export const questData = {
             description: "Return to the Main House and talk to Grandpa about the incomplete family photo."
         },
         {
-            id: "quest_find_photo_piece",
-            name: "Find the Photo Piece",
-            description: "Go to the West Wing and search for the missing corner of the family photo."
+            id: "quest_talk_about_ink_stick",
+            name: "Show Ink Stick to Grandpa",
+            description: "You found the ink stick in the West Wing. Bring it to Grandpa Wang."
         },
         {
-            id: "quest_talk_after_photo_piece",
-            name: "Report to Grandpa",
-            description: "Bring the found piece back to the Main House and tell Grandpa."
+            id: "quest_find_inkstick",
+            name: "Find the Ink Stick in the West Wing",
+            description: "You have the brush. Grandpa Wang said the ink stick is in the West Wing."
+        },
+        {
+            id: "quest_find_brush",
+            name: "Find the Brush in the East Wing",
+            description: "You have the ink stick. Grandpa Wang said the brush is in the East Wing study."
+        },
+        {
+            id: "quest_talk_deep",
+            name: "Return to Grandpa Wang",
+            description: "You have both the brush and the ink stick. Go back to Grandpa Wang."
+        },
+        {
+            id: "quest_find_photo_piece",
+            name: "Talk to Grandpa Wang",
+            description: "You have the brush and the ink stick. Go back and talk to Grandpa Wang."
         },
         {
             id: "quest_pick_pomegranate",
