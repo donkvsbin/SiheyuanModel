@@ -172,15 +172,15 @@ export function getFamilyBookDialogue(locale) {
         zh: [
             { speaker: "王爷爷", text: "这是我们家的家谱。" },
             { speaker: "你", text: "这么厚啊。" },
-            { speaker: "王爷爷", text: "厚是厚。纸比人还多。" },
+            { speaker: "王爷爷", text: "厚是厚。纸比人还多。", expression: "笑" },
             { speaker: "你", text: "字写得真工整。" },
             { speaker: "王爷爷", text: "以前都是毛笔写的。我爹写一页，要磨半天墨。" },
             { speaker: "你", text: "您也写过吗？" },
             { speaker: "王爷爷", text: "写过。年轻的时候记得清楚。谁是第几代，谁娶了谁，谁脾气倔，谁偷着吃糖被罚站。" },
-            { speaker: "你", text: "连这个都记得。" },
+            { speaker: "你", text: "连这个都记得。", expression: "笑" },
             { speaker: "王爷爷", text: "那会儿记得清。现在不行了，有时候翻到名字，得想一会儿——'这是谁来着？'想半天，忽然又想起来：哦，是那个老爱爬树的。" },
             { speaker: "你", text: "那这儿怎么空着？" },
-            { speaker: "王爷爷", text: "这是老三的位置。" },
+            { speaker: "王爷爷", text: "这是老三的位置。", expression: "手停住" },
             { speaker: "你", text: "怎么会空着？" },
             { speaker: "王爷爷", text: "以前吵架。他说别写，我也气。我说'不写就不写'，就真空了。" },
             { speaker: "你", text: "就因为一场架？" },
@@ -191,25 +191,29 @@ export function getFamilyBookDialogue(locale) {
             { speaker: "王爷爷", text: "这院子小，站门口都听得见呼吸。" },
             { speaker: "你", text: "那您当时……没叫他吗？" },
             { speaker: "王爷爷", text: "当时我觉得，他要是真想进，自然会进。现在想想，我要是叫一声……也许就不一样。" },
-            { speaker: "你", text: "那现在呢？还能补上吗？....这页空着，总觉得风从这儿漏进来。" },
-            { speaker: "王爷爷", text: "写上吧。" },
-            { speaker: "王爷爷", text: "院子不是用来赌气的。" },
-            { speaker: "王爷爷", text: "笔在东厢房的桌子上,他小时候写字用的那支,你去帮我找找。" },
-            { speaker: "你", text: "好。" },
-            { speaker: "王爷爷", text: "慢点找，别翻得太急。那屋子……好久没人进了。" }
+            { speaker: "你", text: "那现在呢？还能补上吗？", expression: "轻声" },
+            { speaker: "王爷爷", text: "这页空着，总觉得风从这儿漏进来。", expression: "翻了两页又翻回来" },
+            { speaker: "你", text: "写上吧。" },
+            { speaker: "王爷爷", text: "你觉得该写吗？" },
+            { speaker: "你", text: "院子不是用来赌气的。" },
+            { speaker: "王爷爷", text: "写上……得磨墨啊。", expression: "长叹一口气" },
+            { speaker: "你", text: "墨不是在这儿吗？" },
+            { speaker: "王爷爷", text: "这砚台是空的。那块老墨，我好像收起来了。还有毛笔，也不知散在哪里了。" },
+            { speaker: "王爷爷", text: "你帮我找找吧，一支旧毛笔，还有一块黑漆漆的墨锭。没有它们，这字写不下去。" },
+            { speaker: "你", text: "好，我去找找。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "This is our family genealogy." },
             { speaker: "You", text: "It's so thick." },
-            { speaker: "Grandpa Wang", text: "Thick indeed. More paper than people." },
+            { speaker: "Grandpa Wang", text: "Thick indeed. More paper than people.", expression: "smiling" },
             { speaker: "You", text: "The handwriting is so neat." },
             { speaker: "Grandpa Wang", text: "In the old days, we used brush pens. My father would grind ink for half a day just to write one page." },
             { speaker: "You", text: "Did you write in it too?" },
             { speaker: "Grandpa Wang", text: "I did. When I was young, I remembered clearly. Who was which generation, who married whom, who had a stubborn temper, who was punished for stealing candy." },
-            { speaker: "You", text: "You even remember that." },
+            { speaker: "You", text: "You even remember that.", expression: "laughing" },
             { speaker: "Grandpa Wang", text: "I remembered clearly back then. Now I can't. Sometimes I see a name and have to think for a while—'Who was this?' Then suddenly remember: oh, that one who loved climbing trees." },
             { speaker: "You", text: "Why is this page blank?" },
-            { speaker: "Grandpa Wang", text: "This is the third son's place." },
+            { speaker: "Grandpa Wang", text: "This is the third son's place.", expression: "hand stops" },
             { speaker: "You", text: "Why is it blank?" },
             { speaker: "Grandpa Wang", text: "We had a fight. He said don't write me in, and I was angry. I said 'Fine, don't write,' so it stayed blank." },
             { speaker: "You", text: "Just because of one fight?" },
@@ -220,12 +224,16 @@ export function getFamilyBookDialogue(locale) {
             { speaker: "Grandpa Wang", text: "This courtyard is small. You can hear breathing at the door." },
             { speaker: "You", text: "Then... didn't you call out to him?" },
             { speaker: "Grandpa Wang", text: "At the time, I thought if he really wanted to come in, he would. Now I think, if I had called out... maybe things would be different." },
-            { speaker: "You", text: "What about now? Can it still be filled in?....This blank page... it feels like wind leaks through here." },
-            { speaker: "Grandpa Wang", text: "Write it in." },
-            { speaker: "Grandpa Wang", text: "Courtyards aren't for holding grudges." },
-            { speaker: "Grandpa Wang", text: "The brush is on the table in the East Wing, the one he used to write with as a child, go find it for me." },
-            { speaker: "You", text: "Alright." },
-            { speaker: "Grandpa Wang", text: "Take your time searching, don't rush. That room... no one has entered for a long time." }
+            { speaker: "You", text: "What about now? Can it still be filled in?", expression: "softly" },
+            { speaker: "Grandpa Wang", text: "This blank page... it feels like wind leaks through here.", expression: "flipping pages back and forth" },
+            { speaker: "You", text: "Write it in." },
+            { speaker: "Grandpa Wang", text: "Do you think it should be written?" },
+            { speaker: "You", text: "Courtyards aren't for holding grudges." },
+            { speaker: "Grandpa Wang", text: "To write... I need to grind ink.", expression: "sighing deeply" },
+            { speaker: "You", text: "Isn't the ink right here?" },
+            { speaker: "Grandpa Wang", text: "The inkstone is empty. That old ink stick... I seem to have put it away somewhere. And the brush, I don't know where it's scattered off to." },
+            { speaker: "Grandpa Wang", text: "Help me look for them — an old brush, and a pitch-black ink stick. Without them, the writing can't begin." },
+            { speaker: "You", text: "Alright, I'll go look." }
         ]
     };
     return dialogues[locale] || dialogues['zh'];
@@ -1021,8 +1029,8 @@ export const questData = {
         },
         {
             id: "quest_find_pen",
-            name: "寻找三舅的笔",
-            description: "前往东厢房，找到三舅以前用过的那支笔。"
+            name: "寻找毛笔和墨锭",
+            description: "在院子里找到王爷爷的旧毛笔和墨锭，没有它们，家谱上的字写不下去。"
         },
         {
             id: "quest_talk_about_photo",
@@ -1088,8 +1096,8 @@ export const questData = {
         },
         {
             id: "quest_find_pen",
-            name: "Find Uncle's Pen",
-            description: "Go to the East Wing and find the pen that the third uncle used to use."
+            name: "Find Brush and Ink Stick",
+            description: "Search the courtyard for Grandpa Wang's old brush and ink stick. Without them, the family book cannot be written."
         },
         {
             id: "quest_talk_about_photo",

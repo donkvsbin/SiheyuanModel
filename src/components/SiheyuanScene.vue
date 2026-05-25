@@ -1486,8 +1486,9 @@ export default {
       };
 
       loader.load(
-        '/models/demo7.glb',
+        '/models/demo8.glb',
         (gltf) => {
+          gltf.scene.position.z = -2;
           gltf.scene.traverse((child) => {
             if (child.isMesh) {
               child.frustumCulled = true;
@@ -1556,7 +1557,7 @@ export default {
           // --- 空气墙 ---
           const wallH = 50;
           const wallT = 0.3;
-          const bounds = { minX: -42, maxX: 39, minZ: -71, maxZ: 72 };
+          const bounds = { minX: -42, maxX: 39, minZ: -73, maxZ: 70 };
           const cx = (bounds.minX + bounds.maxX) / 2;
           const cz = (bounds.minZ + bounds.maxZ) / 2;
           const hx = (bounds.maxX - bounds.minX) / 2;
