@@ -86,42 +86,157 @@ function hash(seed) {
 }
 
 /**
- * 在 canvas 上绘制一层山脉剪影
+ * 解析颜色字符串为 r/g/b 分量
+ */
+function parseRGB(color) {
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return { r, g, b }
+}
+
+/**
+ * RGB 颜色明度调整（-1~1，负=加深，正=提亮）
+ */
+function adjustColor(hex, amount) {
+  const { r, g, b } = parseRGB(hex)
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v + amount * 255)))
+  const toHex = (v) => clamp(v).toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+/**
+ * 在 canvas 上绘制一层真实山脉剪影
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} W      画布宽
- * @param {number} baseY  山脉基线 Y（地平线位置）
- * @param {number} peaks  控制点数量
+ * @param {number} baseY  山脉基线 Y
+ * @param {number} peaks  主峰数量
  * @param {number} maxH   最大峰高 (px)
- * @param {number} seed   随机种子（不同层用不同值）
- * @param {string} color  填充色
+ * @param {number} seed   随机种子
+ * @param {string} color  基色（中间调）
+ * @param {object}  opts  选项
  */
-function drawMountainLayer(ctx, W, baseY, peaks, maxH, seed, color) {
+function drawMountainLayer(ctx, W, baseY, peaks, maxH, seed, color, opts = {}) {
+  const shadowColor = opts.shadowColor || adjustColor(color, -0.18)    // 暗面
+  const highlightColor = opts.highlightColor || adjustColor(color, 0.12) // 阳面
+  const snowColor = opts.snowColor || '#f0f3f8'
+  const snowThreshold = opts.snowThreshold ?? 0.65  // 多高以上出现雪
+
+  // 生成主峰高度
   const heights = []
   for (let i = 0; i < peaks; i++) {
-    heights.push(hash(i * 3.7 + seed * 17.3) * maxH)
+    const h1 = hash(i * 3.7 + seed * 17.3)
+    const h2 = hash(i * 7.1 + seed * 23.9) * 0.35 // 次波叠加
+    const h3 = hash(i * 5.3 + seed * 31.1) * 0.15 // 微扰动
+    heights.push(Math.max(0.08, (h1 + h2 + h3) / 1.5) * maxH)
   }
   heights[peaks - 1] = heights[0] // 无缝环绕
 
-  ctx.beginPath()
-  ctx.moveTo(0, baseY + maxH)
-  ctx.lineTo(0, baseY - heights[0] * 0.3)
-
   const dx = W / (peaks - 1)
+
+  // ---- 第一阶段：逐段绘制山体，每段用独立渐变 ----
   for (let i = 0; i < peaks - 1; i++) {
     const x0 = i * dx
     const x1 = (i + 1) * dx
+    const h0 = heights[i]
+    const h1 = heights[i + 1]
     const midX = (x0 + x1) / 2
+    const valleyY = baseY - Math.min(h0, h1) * 0.22
 
-    // 用二次贝塞尔：控制点在山峰顶，终点在两道峰之间的山谷
-    const cpY = baseY - heights[i]
-    const valleyY = baseY - (heights[i] + heights[i + 1]) * 0.18
-    ctx.quadraticCurveTo(x0, cpY, midX, valleyY)
+    // 山峰点
+    const peakX = x0
+    const peakY = baseY - h0
+
+    const segGrad = ctx.createLinearGradient(x0, 0, x1, 0)
+
+    // 模拟阳光从左侧照射：左侧=阳面，右侧=暗面
+    segGrad.addColorStop(0, highlightColor)
+    segGrad.addColorStop(0.25, color)
+    segGrad.addColorStop(0.65, shadowColor)
+    segGrad.addColorStop(1, adjustColor(color, -0.08))
+
+    ctx.beginPath()
+    ctx.moveTo(x0, baseY)
+
+    // 左侧陡坡：从山脚上升到峰顶
+    const steepness = 0.15 + hash(i * 4.1 + seed * 7.9) * 0.25 // 变化坡度
+    ctx.quadraticCurveTo(
+      x0 - dx * steepness, baseY - h0 * 0.2,  // 控制点偏左
+      x0, peakY                                   // 到达峰顶
+    )
+
+    // 右侧缓坡 + 山谷：从峰顶下降到山谷再上升
+    ctx.quadraticCurveTo(
+      x0 + dx * 0.35, peakY - h0 * 0.35,          // 控制点在山腰
+      midX, valleyY                                // 山谷
+    )
+
+    ctx.lineTo(x1, baseY)
+    ctx.closePath()
+    ctx.fillStyle = segGrad
+    ctx.fill()
+
+    // ---- 雪顶 ----
+    if (h0 > maxH * snowThreshold) {
+      const snowAlpha = Math.min(1, (h0 - maxH * snowThreshold) / (maxH * (1 - snowThreshold)))
+      const snowTop = peakY
+      const snowBase = peakY + h0 * 0.25
+
+      const snowGrad = ctx.createLinearGradient(x0, snowTop, x0, snowBase)
+      snowGrad.addColorStop(0, `rgba(255,255,255,${snowAlpha * 0.9})`)
+      snowGrad.addColorStop(0.15, `rgba(248,250,254,${snowAlpha * 0.7})`)
+      snowGrad.addColorStop(0.5, `rgba(230,235,242,${snowAlpha * 0.25})`)
+      snowGrad.addColorStop(1, 'rgba(255,255,255,0)')
+
+      ctx.beginPath()
+      const snowHalfW = dx * 0.22
+      ctx.moveTo(peakX - snowHalfW, snowBase)
+      ctx.quadraticCurveTo(peakX - snowHalfW * 0.3, snowTop + h0 * 0.04, peakX, snowTop)
+      ctx.quadraticCurveTo(peakX + snowHalfW * 0.3, snowTop + h0 * 0.04, peakX + snowHalfW, snowBase)
+      ctx.closePath()
+      ctx.fillStyle = snowGrad
+      ctx.fill()
+    }
+
+    // ---- 山脊高光线 ----
+    ctx.beginPath()
+    ctx.moveTo(x0 - dx * 0.08, baseY - h0 * 0.85)
+    ctx.quadraticCurveTo(x0 - dx * 0.02, baseY - h0 * 0.97, x0, baseY - h0)
+    ctx.quadraticCurveTo(x0 + dx * 0.06, baseY - h0 * 0.93, x0 + dx * 0.15, baseY - h0 * 0.75)
+    ctx.strokeStyle = `rgba(255,255,255,0.15)`
+    ctx.lineWidth = Math.max(1, maxH * 0.015)
+    ctx.stroke()
   }
 
-  ctx.lineTo(W, baseY + maxH)
-  ctx.closePath()
-  ctx.fillStyle = color
-  ctx.fill()
+  // ---- 第二阶段：叠加岩石纹理（半透明噪声点） ----
+  ctx.save()
+  ctx.globalCompositeOperation = 'overlay'
+  for (let x = 0; x < W; x += 4) {
+    for (let yi = 0; yi < 30; yi++) {
+      const y = baseY - yi * (maxH / 30)
+      const hIdx = Math.floor(x / dx)
+      if (hIdx < 0 || hIdx >= heights.length) continue
+      const localH = heights[Math.min(hIdx, heights.length - 1)]
+      if (baseY - y > localH * 1.05) continue // 在山峰以上不画
+
+      const n = hash(x * 0.73 + yi * 19.7 + seed * 41.3)
+      if (n > 0.82) {
+        ctx.fillStyle = n > 0.92
+          ? 'rgba(255,255,255,0.06)'
+          : 'rgba(0,0,0,0.04)'
+        ctx.fillRect(x, y, 3, 2)
+      }
+    }
+  }
+  ctx.restore()
+
+  // ---- 第三阶段：山脚半透明雾化带 ----
+  const fogGrad = ctx.createLinearGradient(0, baseY - 6, 0, baseY + maxH * 0.12)
+  fogGrad.addColorStop(0, 'rgba(200,210,218,0)')
+  fogGrad.addColorStop(0.5, 'rgba(200,210,218,0.25)')
+  fogGrad.addColorStop(1, 'rgba(200,210,218,0)')
+  ctx.fillStyle = fogGrad
+  ctx.fillRect(0, baseY - 6, W, maxH * 0.12 + 6)
 }
 
 function createSkyCanvas() {
@@ -135,30 +250,48 @@ function createSkyCanvas() {
   // 天空垂直渐变
   const horizonY = H * 0.52
   const grad = ctx.createLinearGradient(0, 0, 0, H)
-  grad.addColorStop(0.0, '#1d3568')    // 天顶深蓝
-  grad.addColorStop(0.22, '#4a7dbd')   // 中天
-  grad.addColorStop(0.44, '#a0c2de')   // 近地平线
-  grad.addColorStop(0.50, '#d0dce6')   // 地平线雾色
-  grad.addColorStop(0.53, '#c5d2bc')   // 稍下过渡
-  grad.addColorStop(0.62, '#99aa88')   // 地面浅
-  grad.addColorStop(1.0, '#6b7d5a')    // 地面深
+  grad.addColorStop(0.0, '#1d3568')
+  grad.addColorStop(0.22, '#4a7dbd')
+  grad.addColorStop(0.44, '#a0c2de')
+  grad.addColorStop(0.50, '#d0dce6')
+  grad.addColorStop(0.53, '#c5d2bc')
+  grad.addColorStop(0.62, '#99aa88')
+  grad.addColorStop(1.0, '#6b7d5a')
 
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, W, H)
 
-  // 三层山脉剪影 — 空气透视法：越远越淡越蓝
-  drawMountainLayer(ctx, W, horizonY,      56, 260, 1, '#8aa0b8') // 最远 — 淡蓝灰
-  drawMountainLayer(ctx, W, horizonY - 6,  44, 380, 2, '#6b8298') // 中层 — 蓝灰
-  drawMountainLayer(ctx, W, horizonY - 12, 34, 520, 3, '#4a5a50') // 最近 — 青褐
+  // 三层山脉 — 空气透视：远的淡蓝、近的青褐
+  // 最远层
+  drawMountainLayer(ctx, W, horizonY, 56, 260, 1, '#8fa8c0', {
+    shadowColor: '#7d95ae',
+    highlightColor: '#a2bbd3',
+    snowColor: '#eef2f7',
+    snowThreshold: 0.72,
+  })
+  // 中层
+  drawMountainLayer(ctx, W, horizonY - 6, 44, 380, 2, '#6d849a', {
+    shadowColor: '#5b7186',
+    highlightColor: '#7f96ad',
+    snowColor: '#eef4f8',
+    snowThreshold: 0.68,
+  })
+  // 最近层 — 更丰富的青褐色带岩石感
+  drawMountainLayer(ctx, W, horizonY - 12, 34, 520, 3, '#556a4a', {
+    shadowColor: '#3d5035',
+    highlightColor: '#6e8462',
+    snowColor: '#f2f5f0',
+    snowThreshold: 0.64,
+  })
 
-  // 山脚用半透明柔化过渡，避免硬边
-  const softenGrad = ctx.createLinearGradient(0, horizonY - 12, 0, horizonY + 20)
+  // 整体山脚水平雾化
+  const softenGrad = ctx.createLinearGradient(0, horizonY - 14, 0, horizonY + 22)
   softenGrad.addColorStop(0, 'rgba(208,220,230,0)')
-  softenGrad.addColorStop(0.35, 'rgba(208,220,230,0.35)')
-  softenGrad.addColorStop(0.65, 'rgba(208,220,230,0.25)')
+  softenGrad.addColorStop(0.35, 'rgba(208,220,230,0.4)')
+  softenGrad.addColorStop(0.65, 'rgba(208,220,230,0.28)')
   softenGrad.addColorStop(1, 'rgba(208,220,230,0)')
   ctx.fillStyle = softenGrad
-  ctx.fillRect(0, horizonY - 12, W, 32)
+  ctx.fillRect(0, horizonY - 14, W, 36)
 
   return canvas
 }
