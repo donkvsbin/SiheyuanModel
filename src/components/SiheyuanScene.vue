@@ -313,6 +313,8 @@ import {GTAOManager, GTAOPresets} from '../utils/GTAOManager.js';
 import {VolumetricLightPass} from '../utils/VolumetricLightPass.js';
 import {ColorGradingPass, ColorGradingPresets} from '../utils/ColorGradingPass.js';
 import {VignettePass} from '../utils/VignettePass.js';
+import {SkySystem} from '../utils/SkySystem.js';
+import {MountainSystem} from '../utils/MountainSystem.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -635,6 +637,8 @@ export default {
     if (this.volumetricLightPass) this.volumetricLightPass.dispose();
     if (this.colorGradingPass) this.colorGradingPass.dispose();
     if (this.vignettePass) this.vignettePass.dispose();
+    if (this.skySystem) this.skySystem.dispose();
+    if (this.mountainSystem) this.mountainSystem.dispose();
   },
   methods: {
     // 保存并退出游戏
@@ -714,26 +718,7 @@ export default {
       if (!this.rapierLoaded) return;
       const scene = new THREE.Scene();
 
-      // 天空盒：读取 public/Sky/chenwu_textures 六面图（路径大小写须与文件夹一致）
-      const cubeLoader = new THREE.CubeTextureLoader();
-      // 顺序: +x, -x, +y, -y, +z, -z；X 方向反了则交换 px/nx
-      const skyUrls = [
-        '/Sky/chenwu_textures/nx.jpg', '/Sky/chenwu_textures/px.jpg',
-        '/Sky/chenwu_textures/py.jpg', '/Sky/chenwu_textures/ny.jpg',
-        '/Sky/chenwu_textures/pz.jpg', '/Sky/chenwu_textures/nz.jpg'
-      ];
-      scene.background = cubeLoader.load(
-          skyUrls,
-          (tex) => {
-            if (this.scene) this.scene.background = tex;
-          },
-          undefined,
-          (err) => {
-            console.error('天空盒加载失败', err);
-          }
-      );
-
-      // 添加距离雾（轻微雾蒙蒙效果）
+      // 添加距离雾（轻微雾蒙蒙效果，雾色需与天空shader地平线色接近 0xd0dce6）
       scene.fog = new THREE.Fog(0xd0dce6, 40, 220);
 
       // 相机
@@ -745,6 +730,11 @@ export default {
       );
       camera.position.set(0, 2, 5);
       this.camera = camera;
+
+      // 天空系统：Canvas 渐变天球 + noise 云层双层球体
+      this.skySystem = new SkySystem(scene, camera);
+      this.mountainSystem = new MountainSystem(scene);
+      scene.background = null; // 天球接管背景
 
       // 渲染器：强制使用独立显卡
       const renderer = new THREE.WebGLRenderer({
@@ -1979,6 +1969,11 @@ export default {
         }
         if (this.volumetricLightPass && this.sunWorldPosition) {
           this.volumetricLightPass.setSunPosition(this.sunWorldPosition.clone());
+        }
+
+        // 更新程序化天空系统（天球+云层跟随摄像机，双层视差）
+        if (this.skySystem && this.sunWorldPosition) {
+          this.skySystem.update(delta, this.sunWorldPosition);
         }
 
         if (this.oldmanMixer) {
