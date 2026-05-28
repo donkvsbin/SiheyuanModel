@@ -1089,12 +1089,12 @@ export const questData = {
         {
             id: "quest_explore_courtyard",
             name: "探索内院",
-            description: "探索四合院内院，发现更多有趣的事物。"
+            description: "在院落的桌子上，似乎有一本家谱。"
         },
         {
             id: "quest_talk_about_family_book",
             name: "和王爷爷谈论家谱",
-            description: "获得家谱后，和在正房的王爷爷谈论家谱的内容。"
+            description: "拿到家谱后，和在正房的王爷爷谈论家谱的内容。"
         },
         {
             id: "quest_find_pen",
@@ -1129,7 +1129,7 @@ export const questData = {
         {
             id: "quest_find_photo_piece",
             name: "与王爷爷聊聊",
-            description: ""
+            description: "毛笔和墨锭都交给王爷爷了，听听他要说什么。"
         },
         {
             id: "quest_pick_pomegranate",
