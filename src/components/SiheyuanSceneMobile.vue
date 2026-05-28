@@ -126,9 +126,6 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {GTAOManager, GTAOPresets} from '../utils/GTAOManager.js';
-import {VolumetricLightPass} from '../utils/VolumetricLightPass.js';
-import {ColorGradingPass, ColorGradingPresets} from '../utils/ColorGradingPass.js';
-import {VignettePass} from '../utils/VignettePass.js';
 
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
@@ -216,7 +213,7 @@ export default {
       gtaoEnabled: true,
       bloomStrength: 0.2,
       toneMappingExposure: 1.25  ,
-      targetFPS: 90, // 目标帧率
+      targetFPS: 60, // 移动端目标帧率（实际受限于设备刷新率）
       sunTime: 10, // 太阳时间 9~18点
       // 时间系统
       gameTime: 10.5, // 游戏内时间（默认10:30）
@@ -298,6 +295,7 @@ export default {
       // 虚拟摇杆
       joystickActive: false,
       joystickId: null,
+      fullscreenRequested: false,
       joystickBaseX: 0,
       joystickBaseY: 0,
       joystickDX: 0,
@@ -455,9 +453,6 @@ export default {
     window.removeEventListener('keyup', this.onKeyUp);
     if (this.animationId) cancelAnimationFrame(this.animationId);
     if (this.gtaoManager) this.gtaoManager.dispose();
-    if (this.volumetricLightPass) this.volumetricLightPass.dispose();
-    if (this.colorGradingPass) this.colorGradingPass.dispose();
-    if (this.vignettePass) this.vignettePass.dispose();
   },
   methods: {
     // 保存并退出游戏
@@ -563,7 +558,7 @@ export default {
         failIfMajorPerformanceCaveat: false // 强制使用独显，即使性能较差也不回退核显
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(1.0); // 固定像素比1.0提升性能
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0)); // 移动端限制像素比省显存
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFShadowMap; // 改用PCF，比Soft快
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -583,10 +578,10 @@ export default {
         ...GTAOPresets.modelingEnhanced,
         radius: this.aoRadius,
         intensity: this.aoIntensity,
-        samples: 32,      // 最高采样质量
-        distanceExponent: 1.8, // 强化距离衰减
-        blurRadius: 2,    // 最小模糊保持锐利边缘
-        thickness: 3.0    // 最大厚度补偿
+        samples: 8,       // 移动端降低采样
+        distanceExponent: 1.5,
+        blurRadius: 1,
+        thickness: 2.0
       });
       const gtaoPass = this.gtaoManager.init(scene, camera, window.innerWidth, window.innerHeight);
       composer.addPass(gtaoPass);
@@ -602,31 +597,8 @@ export default {
       this.bloomPass = bloomPass;
       this.renderer = renderer;
 
-      // 添加体积光 (God Rays)
-      this.volumetricLightPass = new VolumetricLightPass(scene, camera, {
-        sunPosition: new THREE.Vector3(this.sunOffset.x, this.sunOffset.y, this.sunOffset.z),
-        exposure: 0.12,
-        decay: 0.96,
-        density: 0.35,
-        weight: 0.18,
-        samples: 15,
-        threshold: 0.8,
-        intensity: 0.28
-      });
-      this.volumetricLightPass.setSize(window.innerWidth, window.innerHeight);
-      composer.addPass(this.volumetricLightPass);
-
-      // 添加色彩分级 (暖色调+对比度)
-      this.colorGradingPass = new ColorGradingPass(ColorGradingPresets.minecraft);
-      composer.addPass(this.colorGradingPass);
-
-      // 添加暗角
-      this.vignettePass = new VignettePass({
-        intensity: 0.3,
-        smoothness: 0.45,
-        roundness: 0.85
-      });
-      composer.addPass(this.vignettePass);
+      // 移动端：移除体积光、色彩分级、暗角以节省显存，仅保留 GTAO + Bloom + SMAA
+      // 暖色调通过 renderer.toneMapping = ACESFilmicToneMapping 实现
 
       // 添加 SMAA 抗锯齿（解决远距离锯齿问题）
       const smaaPass = new SMAAPass(window.innerWidth, window.innerHeight);
@@ -662,7 +634,7 @@ export default {
       directionalLight.target.position.copy(sunTargetWorld);
       directionalLight.castShadow = true;
 
-      // 阴影：优化分辨率为1024，大幅减少渲染开销
+      // 阴影
       directionalLight.shadow.mapSize.width = 2048;
       directionalLight.shadow.mapSize.height = 2048;
       directionalLight.shadow.camera.near = 1;
@@ -1853,9 +1825,6 @@ export default {
           this.directionalLight.position.copy(this._shadowFocus).addScaledVector(this.sunLightDirection, -shadowDist);
           this.directionalLight.target.updateMatrixWorld();
         }
-        if (this.volumetricLightPass && this.sunWorldPosition) {
-          this.volumetricLightPass.setSunPosition(this.sunWorldPosition.clone());
-        }
 
         if (this.oldmanMixer) {
           this.oldmanMixer.update(delta);
@@ -1937,10 +1906,6 @@ export default {
         // 同步 GTAO 分辨率
         if (this.gtaoManager) {
           this.gtaoManager.resize(window.innerWidth, window.innerHeight);
-        }
-        // 同步体积光分辨率
-        if (this.volumetricLightPass) {
-          this.volumetricLightPass.setSize(window.innerWidth, window.innerHeight);
         }
         // 同步 SMAA 分辨率
         if (this.smaaPass) {
@@ -2112,6 +2077,7 @@ export default {
     // 虚拟摇杆
     onJoystickStart(e) {
       this.tryStartBgm();
+      this.requestFullscreen();
       const t = e.changedTouches[0];
       this.joystickId = t.identifier;
       const rect = e.currentTarget.getBoundingClientRect();
@@ -2913,6 +2879,17 @@ export default {
         // 随机 0.5～2 秒后开始播放
         const delayMs = 500 + Math.random() * 1500;
         this._musicDelayTimer = setTimeout(() => this.startBgm(), delayMs);
+      }
+    },
+    // 首次触摸时请求全屏（隐藏浏览器导航栏）
+    requestFullscreen() {
+      if (this.fullscreenRequested) return;
+      this.fullscreenRequested = true;
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
       }
     },
 
@@ -3797,7 +3774,7 @@ export default {
 <style scoped>
 .scene-container {
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   position: relative;
   overflow: hidden;
 }
@@ -3930,7 +3907,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: white;
   opacity: 0.8;
   pointer-events: none;
@@ -3980,7 +3957,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -4108,7 +4085,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.95);
   display: flex;
   justify-content: center;
@@ -4229,7 +4206,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: black;
   z-index: 10000;
   display: flex;
@@ -4373,7 +4350,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;

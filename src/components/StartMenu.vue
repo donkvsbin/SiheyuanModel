@@ -170,7 +170,7 @@ export default {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -571,6 +571,37 @@ export default {
   }
   .btn-text-en {
     font-size: 16px;
+  }
+}
+
+/* 横屏或小屏手机：缩小按钮、减少间距 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .button-main {
+    bottom: 24px;
+    gap: 8px;
+  }
+  .btn-main {
+    width: 220px;
+    height: 44px;
+    border-radius: 8px;
+    border-width: 3px;
+    box-shadow: 0 4px 0 #6b5537, 0 6px 12px rgba(0,0,0,0.4);
+  }
+  .btn-main:hover {
+    box-shadow: 0 5px 0 #6b5537, 0 8px 14px rgba(0,0,0,0.5);
+  }
+  .btn-main:active {
+    box-shadow: 0 2px 0 #5a4528, 0 3px 6px rgba(0,0,0,0.3);
+  }
+  .btn-text-main {
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+  .lang-switch-btn {
+    bottom: 12px;
+    left: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
   }
 }
 </style>
