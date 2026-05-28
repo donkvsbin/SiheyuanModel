@@ -14,7 +14,7 @@ export class DialogueSystem {
             'zh': {
                 '王爷爷': '/photo/Character2D/oldman.webp',
                 '你': '/photo/Character2D/me.webp',
-                '老奶奶': '/photo/Character2D/oldwoman.webp'
+                '奶奶': '/photo/Character2D/oldwoman.webp'
             },
             'en': {
                 'Grandpa Wang': '/photo/Character2D/oldman.webp',

@@ -72,9 +72,9 @@ export default {
   emits: ['complete', 'back'],
   data() {
     return {
-      familySrc: '/photo/Character2D/family.png',
-      pieceSrc: '/photo/Character2D/thirdson.png',
-      finalSrc: '/photo/Character2D/finalPic.png',
+      familySrc: '/photo/Character2D/familyColored.png',
+      pieceSrc: '/photo/Character2D/thirdsonColored.png',
+      finalSrc: '/photo/Character2D/finalPicColored.png',
       ready: false,
       completed: false,
       justSnapped: false,

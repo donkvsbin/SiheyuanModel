@@ -32,15 +32,17 @@ export const storyData = {
                 scenes: [
                     {
                         id: "scene2_1",
-                        title: "遇见老奶奶",
-                        description: "玩家在院子里遇到抚摸猫的老奶奶",
+                        title: "遇见奶奶",
+                        description: "玩家在院子里遇到抱着猫的奶奶",
                         dialogue: [
-                            { speaker: "你", text: "奶奶，您这猫养得真好，毛色真亮。" },
-                            { speaker: "老奶奶", text: "呵呵，这猫儿跟了我十二年啦，比亲孙子还亲呢。" },
-                            { speaker: "你", text: "它每天都在这儿晒太阳吗？" },
-                            { speaker: "老奶奶", text: "可不是嘛，这院子朝南，午后阳光最好。猫儿懂享受，人也该学学。" },
-                            { speaker: "你", text: "奶奶，这院子住得舒服吗？" },
-                            { speaker: "老奶奶", text: "舒服啊，冬暖夏凉，邻里亲近。年轻人，慢点走，多看看，这院子里的每一块砖都有故事。" }
+                            { speaker: "你", text: "奶奶？" },
+                            { speaker: "奶奶", text: "小林！你妈跟我说你今天要来，我还当她哄我呢。快过来，让奶奶好好看看。" },
+                            { speaker: "你", text: "这猫好乖。" },
+                            { speaker: "奶奶", text: "它呀，跟了我十二年了。你妈小时候还抱过它，那会儿才巴掌大。现在老得跟我似的，除了晒太阳，什么都不想干。" },
+                            { speaker: "你", text: "它每天都在这儿？" },
+                            { speaker: "奶奶", text: "雷打不动。这院子朝南，午后最暖和。我坐这儿，它趴这儿，一待就是一下午。可惜这么大的院子，晒太阳的就我们俩。" },
+                            { speaker: "你", text: "爷爷呢？" },
+                            { speaker: "奶奶", text: "又在那儿翻他那本老家谱呢。去吧，他在垂花门那边。多陪他说说话，他嘴上不说，心里盼着呢。" }
                         ]
                     }
                 ]
@@ -76,14 +78,16 @@ export const storyData = {
                     {
                         id: "scene2_1",
                         title: "Meeting Grandma",
-                        description: "Player meets grandma petting her cat in the courtyard",
+                        description: "Player meets Grandma holding her cat in the courtyard",
                         dialogue: [
-                            { speaker: "You", text: "Grandma, your cat is so well-kept, its fur is so shiny." },
-                            { speaker: "Grandma", text: "Hehe, this cat has been with me for twelve years, closer than my own grandchildren." },
-                            { speaker: "You", text: "Does it sunbathe here every day?" },
-                            { speaker: "Grandma", text: "Of course, this courtyard faces south, the afternoon sun is the best. The cat knows how to enjoy life, people should learn from it." },
-                            { speaker: "You", text: "Grandma, is it comfortable living in this courtyard?" },
-                            { speaker: "Grandma", text: "Very comfortable, warm in winter and cool in summer, close neighbors. Young person, walk slowly, look around, every brick in this courtyard has a story." }
+                            { speaker: "You", text: "Grandma?" },
+                            { speaker: "Grandma", text: "Xiaolin! Your mother said you were coming today — I thought she was just saying that. Come here, let me get a good look at you." },
+                            { speaker: "You", text: "Your cat is so gentle." },
+                            { speaker: "Grandma", text: "This one? She's been with me twelve years. Your mother held her when she was just palm-sized. Now she's as old as me — doesn't want to do anything but lie in the sun." },
+                            { speaker: "You", text: "Is she here every day?" },
+                            { speaker: "Grandma", text: "Without fail. This courtyard faces south — warmest in the afternoon. I sit here, she lies here, the whole afternoon slips by. A shame though, courtyard this big, and it's just the two of us in the sun." },
+                            { speaker: "You", text: "Where's Grandpa?" },
+                            { speaker: "Grandma", text: "Still fussing over that old family book of his. Go on, he's by the Chuihua Gate. Spend some time with him — he won't admit it, but he's been waiting." }
                         ]
                     }
                 ]
@@ -170,6 +174,7 @@ export function getChuihuaDialogue(locale) {
 export function getFamilyBookDialogue(locale) {
     const dialogues = {
         zh: [
+            { speaker: "你", text: "王爷爷，这是什么？" },
             { speaker: "王爷爷", text: "这是我们家的家谱。" },
             { speaker: "你", text: "这么厚啊。" },
             { speaker: "王爷爷", text: "厚是厚。纸比人还多。", expression: "笑" },
@@ -201,10 +206,10 @@ export function getFamilyBookDialogue(locale) {
             { speaker: "王爷爷", text: "这砚台是空的。那块老墨，我好像收起来了。还有毛笔，也不知散在哪里了。" },
             { speaker: "王爷爷", text: "你帮我找找吧，一支旧毛笔，还有一块黑漆漆的墨锭。没有它们，这字写不下去。" },
             { speaker: "王爷爷", text: "毛笔应该在你三舅的东厢房里。不过那间房让你奶奶锁了好多年了，钥匙我记得她藏在石榴树底下。你先去石榴树下找找钥匙吧。" },
-            { speaker: "你", text: "好，我去石榴树下看看。" },
-            { speaker: "你", text: "对了，墨锭的话……" },
+            { speaker: "你", text: "好，我去石榴树那边找找。" },
+            { speaker: "你", text: "对了，那墨锭呢？" },
             { speaker: "王爷爷", text: "墨锭在西厢房，那间没锁。你先把毛笔和钥匙找着再说。" },
-            { speaker: "你", text: "行，我先去东厢房。" }
+            { speaker: "你", text: "好，那我先去东厢房。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "This is our family genealogy." },
@@ -290,7 +295,7 @@ export function getInkStickDialogue(locale) {
             { speaker: "王爷爷", text: "他嘴上不服，后来……倒也听进去了。就是不知道现在还练不练字。" },
             { speaker: "你", text: "书桌上那块撕下来的照片……", expression: "望向书桌的方向" },
             { speaker: "王爷爷", text: "嗯。那个不急。先把东西找齐。毛笔在东厢房，以前那儿是书房。", expression: "摆摆手，没有多提" },
-            { speaker: "你", text: "好，我去拿。" }
+            { speaker: "你", text: "好，我这就去。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "Ah, this one. Pine soot ink.", expression: "taking the ink stick, rubbing it with his fingers" },
@@ -433,7 +438,7 @@ export function getPhotoPieceDialoguePart2b(locale) {
             { speaker: "", text: "（你看着王爷爷用笔尖沾满墨汁）" },
             { speaker: "王爷爷", text: "写上了，这下不算少人了。门一直开着，就等他们回来吧。" },
             { speaker: "王爷爷", text: "今年石榴成熟的早，要不要摘几个？" },
-            { speaker: "你", text: "好，别让他自己掉地上。" }
+            { speaker: "你", text: "好，别等它们自己落了。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "You ground this ink evenly. When Third was young, he had no patience for it — two circles and he'd run off to play. The color was never right.", expression: "looking at the inkstone, nodding slightly" },
@@ -451,7 +456,7 @@ export function getPomegranateShareDialogue(locale) {
     const dialogues = {
         zh: [
             { speaker: "王爷爷", text: "摘了几个？" },
-            { speaker: "你", text: "四个。够吗？" },
+            { speaker: "你", text: "摘了四个，够吗？" },
             { speaker: "王爷爷", text: "够。留几个在树上，鸟儿也得吃。" },
             { speaker: "", text: "（交互提示：把石榴递给王爷爷）" },
             { speaker: "王爷爷", text: "这个给你妈带回去。这个……留给老大，他爱吃酸的。这个给老二，她小时候总偷青的吃，酸得皱眉头。这个……" },
@@ -729,7 +734,7 @@ export const interactionPoints = [
     },
     {
         id: "oldwoman",
-        name: "老奶奶",
+        name: "奶奶",
         nameEn: "Grandma",
         position: { x: -7, y: 14.7, z: 22 },
         radius: 2.5,
@@ -783,8 +788,8 @@ export const interactionPoints = [
     },
     {
         id: "eastwing_key",
-        name: "铜钥匙",
-        nameEn: "Bronze Key",
+        name: "石榴树",
+        nameEn: "Pomegranate Tree",
         position: { x: -5, y: 16, z: 30 },
         radius: 2.5,
         action: "interact",
@@ -930,7 +935,7 @@ export const collectionData = {
                 image: "/photo/Collection/Neiyuan.webp",
                 interactionId: "chuihuamen",
                 location: "垂花门内",
-                description: "内院是四合院的核心区域，穿过垂花门便进入内院。这里有石榴树、海棠树，还有老奶奶常坐的摇椅。内院是家人日常活动的地方，也是孩子们嬉戏玩耍的场所。",
+                description: "内院是四合院的核心区域，穿过垂花门便进入内院。这里有石榴树、海棠树，还有奶奶常坐的摇椅。内院是家人日常活动的地方，也是孩子们嬉戏玩耍的场所。",
                 category: "location"
             },
             {

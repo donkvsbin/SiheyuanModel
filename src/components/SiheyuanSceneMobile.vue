@@ -30,9 +30,11 @@
       </button>
 
       <!-- 交互按钮（靠近可交互对象时显示） -->
-      <button v-if="currentInteraction && !isInDialogue && !showSettings" class="interact-btn" @touchstart.prevent="handleMobileInteract">
-        {{ locale === 'zh' ? '交互' : 'Interact' }}
-      </button>
+      <transition name="interact-fade">
+        <button v-if="currentInteraction && !isInDialogue && !showSettings" class="interact-btn" @touchstart.prevent="handleMobileInteract">
+          {{ locale === 'zh' ? '交互' : 'Interact' }}
+        </button>
+      </transition>
 
       <!-- 设置按钮 -->
       <button class="settings-btn-mobile" @touchstart.prevent="showSettings = true">⚙</button>
@@ -94,6 +96,12 @@
     <!-- 磨墨小游戏界面 -->
     <InkGrinding :visible="showInkGrinding" :locale="locale" @complete="handleInkGrindingComplete" />
 
+    <!-- 任务面板 -->
+    <QuestPanel
+      v-if="questManager && introCompleted"
+      :quest-manager="questManager"
+    />
+
     <!-- 剧情介绍 -->
     <StoryIntro v-if="showIntro && !loading && !introCompleted" @complete="introCompleted = true" />
 
@@ -138,6 +146,7 @@ import {saveManager} from '../game/SaveManager.js';
 import {QuestManager} from '../game/QuestManager.js';
 import FamilyPuzzle from './FamilyPuzzle.vue';
 import InkGrinding from './InkGrinding.vue';
+import QuestPanel from './QuestPanel.vue';
 
 export default {
   components: {
@@ -145,7 +154,8 @@ export default {
     TeaCeremony,
     StoryIntro,
     FamilyPuzzle,
-    InkGrinding
+    InkGrinding,
+    QuestPanel
   },
   props: {
     isNewGame: {
@@ -291,7 +301,8 @@ export default {
       joystickBaseX: 0,
       joystickBaseY: 0,
       joystickDX: 0,
-      joystickDY: 0
+      joystickDY: 0,
+      joystickIntensity: 0
     };
   },
   computed: {
@@ -1699,7 +1710,8 @@ export default {
 
               // Shift加速奔跑（仅在非飞行模式下）
               const isSprinting = !this.flyMode && this.keys['shift'];
-              const currentSpeed = isSprinting ? moveSpeed * 1.8 : moveSpeed;
+              const speedMul = Math.max(0.25, this.joystickIntensity || 1);
+              const currentSpeed = (isSprinting ? moveSpeed * 1.8 : moveSpeed) * speedMul;
 
               movement.x = finalDir.x * currentSpeed * delta;
               movement.z = finalDir.z * currentSpeed * delta;
@@ -2122,6 +2134,7 @@ export default {
           const ny = dist > 0 ? dy / dist : 0;
           this.joystickDX = nx * clampDist;
           this.joystickDY = ny * clampDist;
+          this.joystickIntensity = clampDist / maxDist;
           // 映射到WASD
           const threshold = 8;
           this.keys.w = this.joystickDY < -threshold;
@@ -2139,6 +2152,7 @@ export default {
           this.joystickActive = false;
           this.joystickDX = 0;
           this.joystickDY = 0;
+          this.joystickIntensity = 0;
           this.clearMoveKeys();
           break;
         }
@@ -4717,6 +4731,11 @@ export default {
   display: flex; align-items: center; justify-content: center;
 }
 .interact-btn:active { background: rgba(220,160,70,0.5); transform: scale(0.88); }
+
+.interact-fade-enter-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.interact-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.interact-fade-enter-from { opacity: 0; transform: scale(0.7); }
+.interact-fade-leave-to { opacity: 0; transform: scale(0.7); }
 @keyframes mobileInteractPulse {
   0%, 100% { box-shadow: 0 0 6px rgba(255,200,100,0.25); }
   50% { box-shadow: 0 0 18px rgba(255,200,100,0.5); }
