@@ -4,6 +4,11 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/mobile',
+      name: 'Mobile',
+      component: () => import('@/components/SiheyuanSceneMobile.vue'),
+    },
+    {
       path: '/ych',
       name: 'YchGame',
       component: () => import('@/components/YchGame.vue'),

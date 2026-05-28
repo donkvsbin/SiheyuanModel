@@ -114,10 +114,10 @@ export function getShortDialogue(locale) {
 export function getFamilyBookShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "慢点找，别翻得太急。东厢房那屋子……好久没人进了。" }
+            { speaker: "王爷爷", text: "东厢房还锁着呢？去石榴树下找找钥匙吧，你奶奶就爱把东西藏那儿。" }
         ],
         en: [
-            { speaker: "Grandpa Wang", text: "Take your time searching, don't rush. That room in the East Wing... no one has entered for a long time." }
+            { speaker: "Grandpa Wang", text: "East Wing still locked? Check under the pomegranate tree for the key. Your grandmother always loved hiding things there." }
         ]
     };
     return shortDialogues[locale] || shortDialogues['zh'];
@@ -200,7 +200,11 @@ export function getFamilyBookDialogue(locale) {
             { speaker: "你", text: "墨不是在这儿吗？" },
             { speaker: "王爷爷", text: "这砚台是空的。那块老墨，我好像收起来了。还有毛笔，也不知散在哪里了。" },
             { speaker: "王爷爷", text: "你帮我找找吧，一支旧毛笔，还有一块黑漆漆的墨锭。没有它们，这字写不下去。" },
-            { speaker: "你", text: "好，我去找找。" }
+            { speaker: "王爷爷", text: "毛笔应该在你三舅的东厢房里。不过那间房让你奶奶锁了好多年了，钥匙我记得她藏在石榴树底下。你先去石榴树下找找钥匙吧。" },
+            { speaker: "你", text: "好，我去石榴树下看看。" },
+            { speaker: "你", text: "对了，墨锭的话……" },
+            { speaker: "王爷爷", text: "墨锭在西厢房，那间没锁。你先把毛笔和钥匙找着再说。" },
+            { speaker: "你", text: "行，我先去东厢房。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "This is our family genealogy." },
@@ -233,7 +237,11 @@ export function getFamilyBookDialogue(locale) {
             { speaker: "You", text: "Isn't the ink right here?" },
             { speaker: "Grandpa Wang", text: "The inkstone is empty. That old ink stick... I seem to have put it away somewhere. And the brush, I don't know where it's scattered off to." },
             { speaker: "Grandpa Wang", text: "Help me look for them — an old brush, and a pitch-black ink stick. Without them, the writing can't begin." },
-            { speaker: "You", text: "Alright, I'll go look." }
+            { speaker: "Grandpa Wang", text: "The brush should be in your third uncle's room in the East Wing. But your grandmother locked that room years ago. The key... I remember she hid it under the pomegranate tree. Go check there first." },
+            { speaker: "You", text: "Alright, I'll check under the pomegranate tree." },
+            { speaker: "You", text: "And the ink stick?" },
+            { speaker: "Grandpa Wang", text: "The ink stick is in the West Wing, that one's not locked. Find the brush and key first." },
+            { speaker: "You", text: "Okay, I'll head to the East Wing." }
         ]
     };
     return dialogues[locale] || dialogues['zh'];
@@ -759,10 +767,29 @@ export const interactionPoints = [
         id: "eastwing",
         name: "东厢房",
         nameEn: "East Wing",
-        position: { x: -22, y: 16, z: 20 },
+        position: { x: -22, y: 19, z: 20 },
         radius: 3,
         action: "interact",
         condition: null
+    },
+    {
+        id: "eastwing_door",
+        name: "东厢房门",
+        nameEn: "East Wing Door",
+        position: { x: -27, y: 16.5, z: 18.5 },
+        radius: 3,
+        action: "interact",
+        condition: null
+    },
+    {
+        id: "eastwing_key",
+        name: "铜钥匙",
+        nameEn: "Bronze Key",
+        position: { x: -5, y: 16, z: 30 },
+        radius: 2.5,
+        action: "interact",
+        condition: "familybook_talk_completed",
+        once: true
     },
     {
         id: "westwing",

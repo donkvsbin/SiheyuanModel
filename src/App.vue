@@ -1,6 +1,10 @@
 <template>
   <div id="app">
-    <router-view v-if="$route.path !== '/'" />
+    <router-view v-if="$route.path !== '/' && $route.path !== '/mobile'" />
+    <template v-else-if="$route.path === '/mobile'">
+      <StartMenu v-if="!gameStarted" @start="startGame" />
+      <SiheyuanSceneMobile v-else :is-new-game="isNewGame" :show-intro="isNewGame" @exit="exitGame" />
+    </template>
     <template v-else>
       <StartMenu v-if="!gameStarted" @start="startGame" />
       <SiheyuanScene v-else :is-new-game="isNewGame" :show-intro="isNewGame" @exit="exitGame" />
@@ -11,6 +15,7 @@
 
 <script>
 import SiheyuanScene from './components/SiheyuanScene.vue'
+import SiheyuanSceneMobile from './components/SiheyuanSceneMobile.vue'
 import StartMenu from './components/StartMenu.vue'
 import StoryIntro from './components/StoryIntro.vue'
 
@@ -18,6 +23,7 @@ export default {
   name: 'App',
   components: {
     SiheyuanScene,
+    SiheyuanSceneMobile,
     StartMenu
   },
   data() {

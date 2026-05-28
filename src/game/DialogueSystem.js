@@ -28,9 +28,77 @@ export class DialogueSystem {
 
     setLocale(locale) {
         this.locale = locale;
-        // 更新继续提示文本
         if (this.elements.continueHint) {
-            this.elements.continueHint.textContent = this.locale === 'zh' ? '按 F 继续' : 'Press F to Continue';
+            this.elements.continueHint.textContent = this.getContinueText();
+        }
+    }
+
+    setMobileMode(isMobile) {
+        this.isMobileDevice = isMobile;
+        this.elements.continueHint.textContent = isMobile
+            ? (this.locale === 'zh' ? '点击继续' : 'Tap to Continue')
+            : this.getContinueText();
+        if (isMobile) this.applyMobileStyles();
+    }
+
+    applyMobileStyles() {
+        // 对话框整体缩小
+        const box = this.elements.box;
+        box.style.width = '92vw';
+        box.style.maxWidth = '420px';
+        box.style.height = 'auto';
+        box.style.minHeight = '120px';
+        box.style.bottom = '10px';
+        box.style.backgroundSize = '100% 100%';
+
+        // 头像
+        const avatar = this.elements.avatar;
+        avatar.style.left = '8%';
+        avatar.style.top = '10%';
+        avatar.style.width = '60px';
+        avatar.style.height = '60px';
+
+        // 名字
+        const nameArea = this.elements.speaker.parentElement;
+        if (nameArea) {
+            nameArea.style.left = '6%';
+            nameArea.style.bottom = '21%';
+            nameArea.style.width = '80px';
+            nameArea.style.height = '20px';
+        }
+        this.elements.speaker.style.fontSize = '10px';
+
+        // 文本
+        const textArea = this.elements.text.parentElement;
+        if (textArea) {
+            textArea.style.left = '27%';
+            textArea.style.top = '10%';
+            textArea.style.width = '60%';
+            textArea.style.height = '70%';
+            textArea.style.padding = '8px';
+        }
+        this.elements.text.style.fontSize = '12px';
+        this.elements.text.style.lineHeight = '1.5';
+
+        // 继续提示（移动端隐藏）
+        this.elements.continueHint.style.display = 'none';
+
+        // tips弹窗
+        const tb = this.elements.tipsBox;
+        tb.style.width = '80vw';
+        tb.style.maxWidth = '360px';
+        tb.style.height = 'auto';
+        tb.style.minHeight = '140px';
+        tb.style.bottom = '10px';
+
+        if (this.elements.tipsText) {
+            this.elements.tipsText.style.left = '8%';
+            this.elements.tipsText.style.top = '12%';
+            this.elements.tipsText.style.width = '84%';
+            this.elements.tipsText.style.height = '60%';
+            this.elements.tipsText.style.fontSize = '13px';
+            this.elements.tipsText.style.lineHeight = '1.5';
+            this.elements.tipsText.style.padding = '10px';
         }
     }
 
@@ -355,6 +423,30 @@ export class DialogueSystem {
         if (!this.isActive) return;
         this.currentIndex++;
         this.showCurrentLine();
+    }
+
+    // 统一推进：触屏点击 + 键盘F键共用
+    publicAdvance() {
+        if (!this.isActive && !this.isTipsActive) return;
+
+        if (this.isActive) {
+            if (this.isTyping) {
+                this.skipTyping();
+            } else {
+                this.nextLine();
+            }
+            return;
+        }
+
+        if (this.isTipsActive) {
+            if (this.isTipsTyping) {
+                this.skipTipsTyping();
+            } else if (this.tipsPages) {
+                this.nextTipsPage();
+            } else {
+                this.hideTips();
+            }
+        }
     }
 
     end() {

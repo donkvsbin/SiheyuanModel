@@ -1,5 +1,6 @@
 <template>
-  <div ref="container" class="scene-container">
+  <div ref="container" class="scene-container mobile-scene">
+    <!-- 加载画面 -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-content">
         <div class="loading-hint">{{ currentLoadingHintText }}</div>
@@ -9,151 +10,55 @@
         <div class="loading-text">{{ loadingProgress.toFixed(0) }}%</div>
       </div>
     </div>
-    <!-- 游戏时间 - 左上角 -->
-    <div class="time-card" v-if="!loading && player">
-      <div class="time-period">{{ currentTimePeriod }}</div>
-      <div class="time-value">{{ formatGameTime }}</div>
-    </div>
 
-    <!-- 拍照闪光效果 -->
-    <div class="photo-flash" v-if="showPhotoFlash"></div>
-
-    <!-- 拍照功能仅通过P键触发，不显示按钮 -->
-
-    <!-- 照片画廊 -->
-    <div v-if="showPhotoGallery" class="photo-gallery-overlay" @click="closePhotoGallery">
-      <div class="photo-gallery-panel" @click.stop>
-        <button class="gallery-close-btn" @click="closePhotoGallery">×</button>
-        <h2 class="gallery-title">精彩瞬间</h2>
-        <div class="gallery-grid">
-          <div v-for="(photo, index) in photoGallery" :key="index" class="gallery-item" @click="previewImage(photo)">
-            <img :src="photo.dataUrl" class="gallery-image" />
-            <div class="gallery-info">
-              <span class="gallery-time">{{ photo.time }}</span>
-              <button class="gallery-download-btn" @click.stop="downloadPhoto(photo)">下载</button>
-            </div>
-          </div>
-          <div v-if="photoGallery.length === 0" class="gallery-empty">
-            还没有照片，按 P 键或点击相机按钮拍照吧！
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 照片预览大图 -->
-    <div v-if="previewPhoto" class="photo-preview-overlay" @click="closePreview">
-      <div class="photo-preview-content" @click.stop>
-        <button class="preview-close-btn" @click="closePreview">×</button>
-        <img :src="previewPhoto.dataUrl" class="preview-image" />
-        <div class="preview-info">
-          <span class="preview-time">{{ previewPhoto.time }}</span>
-          <button class="preview-download-btn" @click.stop="downloadPhoto(previewPhoto)">下载</button>
-        </div>
-      </div>
-    </div>
-    <!-- XYZ坐标、FPS - 右上角 -->
-    <div class="player-info" v-if="!loading && player">
-      <div>X: {{ playerPos.x.toFixed(2) }}</div>
-      <div>Y: {{ playerPos.y.toFixed(2) }}</div>
-      <div>Z: {{ playerPos.z.toFixed(2) }}</div>
-      <div>FPS: {{ currentFPS }}</div>
-    </div>
-    <!-- 交互提示：靠近可交互对象且未打开设置面板时显示 -->
-    <transition name="hint">
-      <div
-        v-if="!loading && currentInteraction && !showSettings && !isInDialogue"
-        class="interaction-hint"
+    <!-- 移动端触屏操控层 -->
+    <div v-if="!loading && introCompleted && !showEnding" class="mobile-controls-layer">
+      <!-- 虚拟摇杆 -->
+      <div class="joystick-area"
+        @touchstart.prevent="onJoystickStart"
+        @touchmove.prevent="onJoystickMove"
+        @touchend.prevent="onJoystickEnd"
       >
-        <div class="interaction-bg">
-          <span class="interaction-text">{{ getInteractionDisplayName() }}</span>
+        <div class="joystick-base" :class="{ active: joystickActive }">
+          <div class="joystick-thumb" :style="joystickThumbStyle"></div>
         </div>
       </div>
-    </transition>
-    <!-- 当前位置显示 -->
-    <div class="location-hint" v-if="!loading && displayLocationImage" :class="{ 'fade-out': isLocationFadingOut }" :style="{ backgroundImage: 'url(' + displayLocationImage + ')' }">
+
+      <!-- 跳跃按钮 -->
+      <button class="jump-btn" @touchstart.prevent="pressKey(' ')" @touchend.prevent="releaseKey(' ')">
+        {{ locale === 'zh' ? '跳跃' : 'Jump' }}
+      </button>
+
+      <!-- 交互按钮（靠近可交互对象时显示） -->
+      <button v-if="currentInteraction && !isInDialogue && !showSettings" class="interact-btn" @touchstart.prevent="handleMobileInteract">
+        {{ locale === 'zh' ? '交互' : 'Interact' }}
+      </button>
+
+      <!-- 设置按钮 -->
+      <button class="settings-btn-mobile" @touchstart.prevent="showSettings = true">⚙</button>
+
+      <!-- 相机拖动区域（右半屏） -->
+      <div class="camera-drag-zone"
+        @touchstart.prevent="onCameraDragStart"
+        @touchmove.prevent="onCameraDragMove"
+        @touchend.prevent="onCameraDragEnd"
+      ></div>
     </div>
 
-    <!-- 键位提示 - 右下角 -->
-    <div class="key-hints" v-if="!loading && introCompleted && !showSettings && !isInDialogue && !showPhotoGallery && !showCollection && !showQuestPanel && !showAIChat">
-      <div class="key-hint-row">
-        <span class="key-badge">K</span>
-        <span class="key-desc">{{ t('questPanel') }}</span>
-      </div>
-      <div class="key-hint-row">
-        <span class="key-badge">L</span>
-        <span class="key-desc">{{ t('collectionLog') }}</span>
-      </div>
-      <div class="key-hint-row">
-        <span class="key-badge">O</span>
-        <span class="key-desc">{{ t('photoGallery') }}</span>
-      </div>
-      <div class="key-hint-row">
-        <span class="key-badge">P</span>
-        <span class="key-desc">{{ t('takePhoto') }}</span>
-      </div>
-      <div class="key-hint-row">
-        <span class="key-badge">H</span>
-        <span class="key-desc">{{ t('aiAssistant') }}</span>
-      </div>
-    </div>
+    <!-- 对话/提示触屏推进遮罩 -->
+    <div
+      v-if="isInDialogue || (dialogueSystem && dialogueSystem.isTipsShowing())"
+      class="dialogue-tap-overlay"
+      @touchstart.prevent="dialogueSystem.publicAdvance()"
+    ></div>
 
-    <div class="settings-overlay" v-if="showSettings">
+    <!-- 设置面板（简化版） -->
+    <div class="settings-overlay" v-if="showSettings" @touchstart.stop>
       <div class="settings-panel">
         <h2 class="settings-title">{{ t('settingsTitle') }}</h2>
 
-        <!-- 主菜单：分类选择 -->
-        <div v-if="!settingsCategory" class="settings-menu">
-          <button class="menu-btn" @click="settingsCategory = 'video'">
-            <span class="menu-icon">🎨</span>
-            {{ t('videoOptions') }}
-          </button>
-          <button class="menu-btn" @click="settingsCategory = 'music'">
-            <span class="menu-icon">🎵</span>
-            {{ t('musicOptions') }}
-          </button>
-          <button class="menu-btn" @click="settingsCategory = 'perf'">
-            <span class="menu-icon">⚡</span>
-            {{ t('perfOptions') }}
-          </button>
-          <button class="menu-btn" @click="settingsCategory = 'time'">
-            <span class="menu-icon">🌅</span>
-            {{ t('timeOptions') }}
-          </button>
-          <button class="menu-btn" @click="settingsCategory = 'language'">
-            <span class="menu-icon">🌐</span>
-            {{ t('language') }}
-          </button>
-        </div>
-
-        <!-- 视频设置 -->
-        <div v-if="settingsCategory === 'video'" class="settings-detail">
-          <h3 class="settings-section-title">{{ t('videoOptions') }}</h3>
-          <div class="settings-group settings-row">
-            <label>GTAO {{ locale === 'zh' ? '环境光遮蔽' : 'Ambient Occlusion' }}</label>
-            <input type="checkbox" v-model="gtaoEnabled" />
-          </div>
-          <div class="settings-group">
-            <label>{{ t('ambientLight') }} {{ ambientIntensity.toFixed(2) }}</label>
-            <input type="range" v-model.number="ambientIntensity" min="0" max="2" step="0.05" />
-          </div>
-          <div class="settings-group">
-            <label>{{ t('dirLight') }} {{ directionalIntensity.toFixed(1) }}</label>
-            <input type="range" v-model.number="directionalIntensity" min="0" max="15" step="0.5" />
-          </div>
-          <div class="settings-group">
-            <label>{{ t('bloom') }} {{ bloomStrength.toFixed(2) }}</label>
-            <input type="range" v-model.number="bloomStrength" min="0" max="1" step="0.05" />
-          </div>
-          <div class="settings-group">
-            <label>{{ t('exposure') }} {{ toneMappingExposure.toFixed(2) }}</label>
-            <input type="range" v-model.number="toneMappingExposure" min="0.3" max="2.5" step="0.05" />
-          </div>
-          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
-        </div>
-
-        <!-- 音乐设置 -->
-        <div v-if="settingsCategory === 'music'" class="settings-detail">
-          <h3 class="settings-section-title">{{ t('musicOptions') }}</h3>
+        <div class="settings-section">
+          <label>{{ t('musicOptions') }}</label>
           <div class="settings-group settings-row">
             <label>{{ t('enableMusic') }}</label>
             <input type="checkbox" v-model="musicEnabled" />
@@ -162,57 +67,18 @@
             <label>{{ t('volume') }} {{ (musicVolume * 100).toFixed(0) }}%</label>
             <input type="range" v-model.number="musicVolume" min="0" max="1" step="0.05" />
           </div>
-          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
         </div>
 
-        <!-- 性能设置 -->
-        <div v-if="settingsCategory === 'perf'" class="settings-detail">
-          <h3 class="settings-section-title">{{ t('perfOptions') }}</h3>
-          <div class="settings-group">
-            <label>{{ t('maxFPS') }} {{ targetFPS }}</label>
-            <input type="range" v-model.number="targetFPS" min="15" max="90" step="5" />
-          </div>
-          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
-        </div>
-
-        <!-- 时间设置 -->
-        <div v-if="settingsCategory === 'time'" class="settings-detail">
-          <h3 class="settings-section-title">{{ t('timeOptions') }}</h3>
-          <!-- 时间流逝开关 -->
-          <div class="settings-group settings-row">
-            <label>{{ t('timeFlow') }}</label>
-            <input type="checkbox" v-model="timeFlowEnabled" @change="onTimeFlowToggle" />
-          </div>
-          <!-- 当前时间（仅在时间流逝关闭时可调） -->
-          <div class="settings-group" :class="{ 'setting-disabled': timeFlowEnabled }">
-            <label>{{ t('sunTime') }} {{ formatTime(gameTime) }}</label>
-            <input type="range" v-model.number="gameTime" min="9" max="18" step="0.1" :disabled="timeFlowEnabled" />
-          </div>
-          <!-- 时间流速（仅在时间流逝开启时有效） -->
-          <div class="settings-group" :class="{ 'setting-disabled': !timeFlowEnabled }">
-            <label>{{ t('timeSpeed') }} {{ timeSpeedMultiplier.toFixed(1) }}x</label>
-            <input type="range" v-model.number="timeSpeedMultiplier" min="0.1" max="5" step="0.1" :disabled="!timeFlowEnabled" />
-            <span class="setting-hint">{{ t('timeSpeedHint') }}</span>
-          </div>
-          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
-        </div>
-
-        <!-- 语言设置 -->
-        <div v-if="settingsCategory === 'language'" class="settings-detail">
-          <h3 class="settings-section-title">{{ t('language') }}</h3>
+        <div class="settings-section">
+          <label>{{ t('language') }}</label>
           <div class="settings-group settings-row lang-switch">
-            <button class="lang-btn" :class="{ active: locale === 'zh' }" @click="setLocale('zh')">
-              {{ t('zhLang') }}
-            </button>
-            <button class="lang-btn" :class="{ active: locale === 'en' }" @click="setLocale('en')">
-              {{ t('enLang') }}
-            </button>
+            <button :class="{ active: locale === 'zh' }" @touchstart.prevent="setLocale('zh')">{{ t('zhLang') }}</button>
+            <button :class="{ active: locale === 'en' }" @touchstart.prevent="setLocale('en')">{{ t('enLang') }}</button>
           </div>
-          <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
         </div>
 
-        <button v-if="!settingsCategory" class="settings-btn" @click="requestLock">{{ t('backToGame') }}</button>
-        <button v-if="!settingsCategory" class="settings-btn save-exit-btn" @click="saveAndExit">{{ t('saveAndExit') }}</button>
+        <button class="settings-btn" @touchstart.prevent="showSettings = false">{{ t('backToGame') }}</button>
+        <button class="settings-btn save-exit-btn" @touchstart.prevent="saveAndExit">{{ t('saveAndExit') }}</button>
       </div>
     </div>
 
@@ -220,79 +86,21 @@
     <CalligraphyPractice v-if="showCalligraphyPractice" :locale="locale" @close="showCalligraphyPractice = false" @enter="isInCalligraphy = true" />
 
     <!-- 茶道小游戏界面 -->
-    <TeaCeremony
-      ref="teaCeremony"
-      :visible="showTeaCeremony"
-      :locale="locale"
-      :current-step="teaCeremonyStep"
-      :score="teaCeremonyScore"
-      :rating="teaCeremonyRating"
-      :is-complete="teaCeremonyComplete"
-      @close="handleTeaCeremonyClose"
-      @start="handleTeaStart"
-    />
+    <TeaCeremony ref="teaCeremony" :visible="showTeaCeremony" :locale="locale" :current-step="teaCeremonyStep" :score="teaCeremonyScore" :rating="teaCeremonyRating" :is-complete="teaCeremonyComplete" @close="handleTeaCeremonyClose" @start="handleTeaStart" />
 
     <!-- 全家福拼图界面 -->
-    <FamilyPuzzle
-      :visible="showFamilyPuzzle"
-      @complete="handlePuzzleComplete"
-    />
+    <FamilyPuzzle :visible="showFamilyPuzzle" @complete="handlePuzzleComplete" />
 
     <!-- 磨墨小游戏界面 -->
-    <InkGrinding
-      :visible="showInkGrinding"
-      :locale="locale"
-      @complete="handleInkGrindingComplete"
-    />
-
-    <!-- 收集系统界面 -->
-    <CollectionView
-      v-if="showCollection"
-      :visible="showCollection"
-      :collection-system="collectionSystem"
-      :locale="locale"
-      @close="closeCollection"
-    />
+    <InkGrinding :visible="showInkGrinding" :locale="locale" @complete="handleInkGrindingComplete" />
 
     <!-- 剧情介绍 -->
-    <StoryIntro
-      v-if="showIntro && !loading && !introCompleted"
-      @complete="introCompleted = true"
-    />
-    
-    <!-- 任务面板 -->
-    <QuestPanel
-      v-if="questManager && introCompleted"
-      :quest-manager="questManager"
-    />
-
-    <!-- AI 聊天界面 -->
-    <AIChat
-      :visible="showAIChat"
-      :locale="locale"
-      @close="closeAIChat"
-    />
-
-    <!-- 任务列表（K键） -->
-    <QuestList
-      :visible="showQuestPanel"
-      :locale="locale"
-      :completed-quests="completedQuests"
-      :current-quest-id="currentQuestId"
-      @close="closeQuestPanel"
-    />
+    <StoryIntro v-if="showIntro && !loading && !introCompleted" @complete="introCompleted = true" />
 
     <!-- 结尾动画 -->
     <div v-if="showEnding" class="ending-overlay">
       <div class="ending-content">
-        <div
-          v-for="(text, index) in endingTexts"
-          :key="index"
-          class="ending-text"
-          :class="{ 'show': index <= endingTextIndex }"
-        >
-          {{ text }}
-        </div>
+        <div v-for="(text, index) in endingTexts" :key="index" class="ending-text" :class="{ 'show': index <= endingTextIndex }">{{ text }}</div>
       </div>
     </div>
   </div>
@@ -324,26 +132,18 @@ import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBoo
 import {i18n} from '../utils/i18n.js';
 import CalligraphyPractice from './CalligraphyPractice.vue';
 import TeaCeremony from './TeaCeremony.vue';
-import CollectionView from './CollectionView.vue';
 import StoryIntro from './StoryIntro.vue';
 import {TeaCeremony as TeaCeremonyGame} from '../game/TeaCeremony.js';
 import {saveManager} from '../game/SaveManager.js';
 import {QuestManager} from '../game/QuestManager.js';
-import QuestPanel from './QuestPanel.vue';
-import QuestList from './QuestList.vue';
 import FamilyPuzzle from './FamilyPuzzle.vue';
 import InkGrinding from './InkGrinding.vue';
-import AIChat from './AIChat.vue';
 
 export default {
   components: {
     CalligraphyPractice,
     TeaCeremony,
-    CollectionView,
     StoryIntro,
-    QuestPanel,
-    QuestList,
-    AIChat,
     FamilyPuzzle,
     InkGrinding
   },
@@ -484,7 +284,14 @@ export default {
       // 结尾动画
       showEnding: false,
       endingTextIndex: 0,
-      endingTexts: []
+      endingTexts: [],
+      // 虚拟摇杆
+      joystickActive: false,
+      joystickId: null,
+      joystickBaseX: 0,
+      joystickBaseY: 0,
+      joystickDX: 0,
+      joystickDY: 0
     };
   },
   computed: {
@@ -543,6 +350,13 @@ export default {
     currentQuestId() {
       if (!this.questManager) return '';
       return this.questManager.getCurrentQuest()?.id || '';
+    },
+    // 虚拟摇杆拇指位置
+    joystickThumbStyle() {
+      const r = 28;
+      const dx = Math.max(-r, Math.min(r, this.joystickDX));
+      const dy = Math.max(-r, Math.min(r, this.joystickDY));
+      return { transform: `translate(${dx}px, ${dy}px)` };
     }
   },
   watch: {
@@ -628,9 +442,6 @@ export default {
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
-    window.removeEventListener('mousedown', this.onMouseDown);
-    window.removeEventListener('mouseup', this.onMouseUp);
-    window.removeEventListener('mousemove', this.onMouseMove);
     if (this.animationId) cancelAnimationFrame(this.animationId);
     if (this.gtaoManager) this.gtaoManager.dispose();
     if (this.volumetricLightPass) this.volumetricLightPass.dispose();
@@ -1543,14 +1354,14 @@ export default {
                 child.receiveShadow = true;
               }
             });
-            model.scale.set(2.1, 2, 2.4);
-            model.position.set(-28.6, 16.5, 19);
+            model.scale.set(3, 3, 3.6);
+            model.position.set(-31, 16, 18);
             model.updateMatrixWorld();
             const rightBox = new THREE.Box3().setFromObject(model);
             const rightPivot = new THREE.Group();
-            rightPivot.position.set(-28.6, 16.5, rightBox.max.z);
+            rightPivot.position.set(-31, 16, rightBox.max.z);
             scene.add(rightPivot);
-            model.position.set(0, 0, 19 - rightBox.max.z);
+            model.position.set(0, 0, 18 - rightBox.max.z);
             rightPivot.add(model);
             optimizeModel(model, true);
             this.doorPivot = rightPivot;
@@ -1558,27 +1369,26 @@ export default {
             // 左扇门
             const leftDoor = model.clone(true);
             leftDoor.scale.z = -leftDoor.scale.z;
-            leftDoor.position.set(-28.6, 16.5, 18);
+            leftDoor.position.set(-29, 16, 18);
             leftDoor.updateMatrixWorld();
             const leftBox = new THREE.Box3().setFromObject(leftDoor);
             const leftPivot = new THREE.Group();
-            leftPivot.position.set(-28.6, 16.5, leftBox.min.z);
+            leftPivot.position.set(-29, 16, leftBox.min.z);
             scene.add(leftPivot);
             leftDoor.position.set(0, 0, 18 - leftBox.min.z);
             leftPivot.add(leftDoor);
             optimizeModel(leftDoor, true);
             this.leftDoorPivot = leftPivot;
 
-            // 如果读档时门已开，直接旋转到位；否则加碰撞
             if (this.storyManager.getFlag('eastwing_door_unlocked')) {
               rightPivot.rotation.y = Math.PI / 2;
               leftPivot.rotation.y = -Math.PI / 2;
             } else if (this.world) {
               const doorBody = this.world.createRigidBody(
-                RAPIER.RigidBodyDesc.fixed().setTranslation(-28.6, 16.5, 18.5)
+                RAPIER.RigidBodyDesc.fixed().setTranslation(-30, 16.5, 18)
               );
               const doorCollider = this.world.createCollider(
-                RAPIER.ColliderDesc.cuboid(0.15, 2.5, 0.8),
+                RAPIER.ColliderDesc.cuboid(1.2, 2.5, 0.15),
                 doorBody
               );
               this.doorColliders = [doorCollider];
@@ -2035,8 +1845,6 @@ export default {
           this.volumetricLightPass.setSunPosition(this.sunWorldPosition.clone());
         }
 
-
-
         if (this.oldmanMixer) {
           this.oldmanMixer.update(delta);
         }
@@ -2129,50 +1937,11 @@ export default {
       };
       window.addEventListener('resize', this.onResize);
 
-      // 指针锁定逻辑
+      // 移动端：不需要指针锁定
       this.pointerLockJustActivated = false;
       this.requestLock = () => {
-        // 只在未锁定时请求锁定，避免重复触发导致视角切换
-        if (document.pointerLockElement !== renderer.domElement) {
-          renderer.domElement.requestPointerLock();
-          // 标记刚刚激活指针锁定，用于跳过第一帧鼠标移动
-          this.pointerLockJustActivated = true;
-          // 100ms后解除标记
-          setTimeout(() => {
-            this.pointerLockJustActivated = false;
-          }, 100);
-        }
+        // 移动端无需指针锁定
       };
-      renderer.domElement.addEventListener('click', this.requestLock);
-
-      document.addEventListener('pointerlockchange', () => {
-        // AI聊天界面打开时不自动打开ESC面板，但允许正常处理指针状态
-        if (this.showAIChat) {
-          if (document.pointerLockElement === null) {
-            // 指针已释放，不需要额外操作
-            return;
-          }
-        }
-        // 对话、tips显示、茶道完成、收集界面或任务面板打开时不自动打开ESC面板
-        if (this.isInDialogue || this.isInPuzzle || this.isInInkGrinding || this.showFamilyPuzzle || (this.dialogueSystem && this.dialogueSystem.isTipsShowing()) || this.showTeaCeremony || this.showCollection || this.showQuestPanel) {
-          this.showSettings = false;
-          return;
-        }
-        const wasLocked = this.showSettings === false && document.pointerLockElement !== null;
-        const shouldShowSettings = document.pointerLockElement === null;
-        // 只有当状态真正变化时才更新
-        if (shouldShowSettings && !this.showSettings) {
-          this.showSettings = true;
-          this.keys = {}; // 打开面板时清空按键，避免回到游戏时误触
-        } else if (!shouldShowSettings && this.showSettings) {
-          this.showSettings = false;
-        }
-        if (!this.showSettings && wasLocked) {
-          // ESC面板关闭，重新获得指针锁定时，标记需要跳过第一帧
-          this.pointerLockJustActivated = true;
-          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        }
-      });
     },
 
     startBgm() {
@@ -2313,27 +2082,116 @@ export default {
       window.addEventListener('keydown', this.onKeyDown);
       window.addEventListener('keyup', this.onKeyUp);
 
-      this.onMouseDown = () => { 
-        this.isDragging = true; 
-        // 尝试启动背景音乐（首次交互时）
-        this.tryStartBgm();
-      };
-      this.onMouseUp = () => { this.isDragging = false; };
-      this.onMouseMove = (e) => {
-        // 直接通过鼠标移动旋转视角，无需拖拽
-        // 对话、临摹、茶道、收集界面、AI聊天或tips显示时禁止视角控制
-        if (this.isInDialogue || this.isInCalligraphy || this.isInPuzzle || this.isInInkGrinding || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
-        if (document.pointerLockElement) {
-          // 跳过指针锁定刚激活时的第一帧移动，避免视角乱跳
-          if (this.pointerLockJustActivated) return;
-          this.cameraAngle.horizontal -= e.movementX * 0.0012;
-          this.cameraAngle.vertical -= e.movementY * 0.0012;
-          this.cameraAngle.vertical = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.cameraAngle.vertical));
+    },
+
+    // ========== 移动端触屏方法 ==========
+    pressKey(key) {
+      this.tryStartBgm();
+      this.keys[key] = true;
+    },
+    releaseKey(key) {
+      this.keys[key] = false;
+      if (key === ' ') this.jumpPressed = false;
+    },
+    clearMoveKeys() {
+      this.keys.w = false; this.keys.a = false; this.keys.s = false; this.keys.d = false;
+    },
+
+    // 虚拟摇杆
+    onJoystickStart(e) {
+      this.tryStartBgm();
+      const t = e.changedTouches[0];
+      this.joystickId = t.identifier;
+      const rect = e.currentTarget.getBoundingClientRect();
+      this.joystickBaseX = rect.left + rect.width / 2;
+      this.joystickBaseY = rect.top + rect.height / 2;
+      this.joystickDX = 0;
+      this.joystickDY = 0;
+      this.joystickActive = true;
+    },
+    onJoystickMove(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.joystickId) {
+          const dx = t.clientX - this.joystickBaseX;
+          const dy = t.clientY - this.joystickBaseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 40;
+          const clampDist = Math.min(dist, maxDist);
+          const nx = dist > 0 ? dx / dist : 0;
+          const ny = dist > 0 ? dy / dist : 0;
+          this.joystickDX = nx * clampDist;
+          this.joystickDY = ny * clampDist;
+          // 映射到WASD
+          const threshold = 8;
+          this.keys.w = this.joystickDY < -threshold;
+          this.keys.s = this.joystickDY > threshold;
+          this.keys.a = this.joystickDX < -threshold;
+          this.keys.d = this.joystickDX > threshold;
+          break;
         }
-      };
-      window.addEventListener('mousedown', this.onMouseDown);
-      window.addEventListener('mouseup', this.onMouseUp);
-      window.addEventListener('mousemove', this.onMouseMove);
+      }
+    },
+    onJoystickEnd(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === this.joystickId) {
+          this.joystickId = null;
+          this.joystickActive = false;
+          this.joystickDX = 0;
+          this.joystickDY = 0;
+          this.clearMoveKeys();
+          break;
+        }
+      }
+    },
+
+    // 相机拖动
+    cameraTouchId: null,
+    lastCameraX: 0,
+    lastCameraY: 0,
+    onCameraDragStart(e) {
+      const t = e.changedTouches[0];
+      this.cameraTouchId = t.identifier;
+      this.lastCameraX = t.clientX;
+      this.lastCameraY = t.clientY;
+      this.tryStartBgm();
+    },
+    onCameraDragMove(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.cameraTouchId) {
+          const sens = 0.004;
+          this.cameraAngle.horizontal -= (t.clientX - this.lastCameraX) * sens;
+          this.cameraAngle.vertical -= (t.clientY - this.lastCameraY) * sens;
+          this.cameraAngle.vertical = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.cameraAngle.vertical));
+          this.lastCameraX = t.clientX;
+          this.lastCameraY = t.clientY;
+          break;
+        }
+      }
+    },
+    onCameraDragEnd(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === this.cameraTouchId) {
+          this.cameraTouchId = null; break;
+        }
+      }
+    },
+
+    // 移动端交互按钮
+    handleMobileInteract() {
+      // 对话中：推进对话
+      if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
+        if (this.dialogueSystem) this.dialogueSystem.publicAdvance();
+        return;
+      }
+      // 茶道游戏中
+      if (this.showTeaCeremony) {
+        this.handleTeaStep();
+        return;
+      }
+      // 正常交互
+      this.handleInteract();
     },
 
     // 老人交互方法
@@ -2653,6 +2511,7 @@ export default {
 
       // 创建对话系统
       this.dialogueSystem = new DialogueSystem(this.$refs.container, this.locale);
+      this.dialogueSystem.setMobileMode(true);
 
       // 监听语言变化，重新加载剧情
       i18n.onChange((locale) => {
@@ -3594,10 +3453,7 @@ export default {
       if (this.dialogueSystem.isTipsShowing()) return;
       this.unlockCollectionItem('eastwing');
       const tipsText = getTipsText(this.locale, 'eastwing');
-      this.dialogueSystem.showTips(tipsText, () => {
-        this.pointerLockJustActivated = true;
-        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-      });
+      this.dialogueSystem.showTips(tipsText);
     },
 
     // 处理东厢房门交互（锁/开锁逻辑）
@@ -3611,39 +3467,28 @@ export default {
         const text = this.locale === 'en'
           ? "The door is already open."
           : "门已经开了。";
-        this.dialogueSystem.showTips(text, () => {
-          this.pointerLockJustActivated = true;
-          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        });
+        this.dialogueSystem.showTips(text);
       } else if (keyFound) {
         this.storyManager.setFlag('eastwing_door_unlocked', true);
         this.openEastWingDoor();
         const text = this.locale === 'en'
           ? "You insert the bronze key into the lock. With a click, the East Wing door swings open."
           : "你把铜钥匙插进锁孔，咔哒一声，东厢房的门开了。";
-        this.dialogueSystem.showTips(text, () => {
-          this.pointerLockJustActivated = true;
-          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        });
+        this.dialogueSystem.showTips(text);
       } else {
         const tipsText = this.locale === 'en'
           ? "The door is locked. Grandpa Wang said the key is under the pomegranate tree."
           : "门被锁住了。王爷爷说钥匙在石榴树下面。";
-        this.dialogueSystem.showTips(tipsText, () => {
-          this.pointerLockJustActivated = true;
-          setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        });
+        this.dialogueSystem.showTips(tipsText);
       }
     },
 
-    // 开门：移除碰撞体、移除门模型
+    // 开门
     openEastWingDoor() {
-      // 移除碰撞体
       if (this.doorColliders && this.world) {
         this.doorColliders.forEach(c => this.world.removeCollider(c, true));
         this.doorColliders = [];
       }
-      // 动画：两扇门绕铰链旋转90度打开
       if (this.doorPivot) {
         this.animateDoorPivot(this.doorPivot, Math.PI / 2);
       }
@@ -3658,7 +3503,7 @@ export default {
       const animate = (now) => {
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1.0);
-        const eased = 1 - Math.pow(1 - t, 3); // ease-out
+        const eased = 1 - Math.pow(1 - t, 3);
         pivot.rotation.y = startAngle + (targetAngle - startAngle) * eased;
         if (t < 1) {
           requestAnimationFrame(animate);
@@ -3667,7 +3512,7 @@ export default {
       requestAnimationFrame(animate);
     },
 
-    // 处理东厢房钥匙交互（石榴树下找钥匙）
+    // 处理东厢房钥匙交互
     handleEastWingKeyInteract() {
       if (this.dialogueSystem.isTipsShowing() || this.isInDialogue) return;
       this.unlockCollectionItem('pomegranate');
@@ -3676,10 +3521,7 @@ export default {
       const text = this.locale === 'en'
         ? "You found a rusty bronze key under the pomegranate tree. This must be the key to the East Wing."
         : "你在石榴树下找到了一把生锈的铜钥匙。这应该就是东厢房三舅房间的钥匙了。";
-      this.dialogueSystem.showTips(text, () => {
-        this.pointerLockJustActivated = true;
-        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-      });
+      this.dialogueSystem.showTips(text);
     },
 
     // 处理西厢房交互
@@ -4790,5 +4632,169 @@ export default {
   padding-left: 20px;
   padding-bottom: 5px;
 }
+
+/* ========== 移动端触屏操控样式 ========== */
+.mobile-scene {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.mobile-controls-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 400;
+  pointer-events: none;
+}
+.mobile-controls-layer > * {
+  pointer-events: auto;
+}
+
+/* 虚拟摇杆 */
+.joystick-area {
+  position: absolute;
+  left: 4%;
+  bottom: 10%;
+  width: 110px;
+  height: 110px;
+  z-index: 10;
+}
+.joystick-base {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 60%, rgba(255,255,255,0.12) 100%);
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+.joystick-base.active {
+  border-color: rgba(255,255,255,0.45);
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.15) 100%);
+}
+.joystick-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.5), rgba(255,255,255,0.15));
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: none;
+}
+
+/* 跳跃按钮 */
+.jump-btn {
+  position: absolute;
+  right: 6%; bottom: 42%;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  font-size: 11px; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.jump-btn:active { background: rgba(255,255,255,0.25); transform: scale(0.88); }
+
+/* 交互按钮 */
+.interact-btn {
+  position: absolute;
+  right: 6%; bottom: 27%;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,200,100,0.5);
+  background: rgba(200,140,60,0.32);
+  color: #fff; font-size: 12px; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: mobileInteractPulse 2s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+}
+.interact-btn:active { background: rgba(220,160,70,0.5); transform: scale(0.88); }
+@keyframes mobileInteractPulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(255,200,100,0.25); }
+  50% { box-shadow: 0 0 18px rgba(255,200,100,0.5); }
+}
+
+/* 设置按钮 */
+.settings-btn-mobile {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.22);
+  color: rgba(255,255,255,0.6);
+  font-size: 18px;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 410;
+}
+.settings-btn-mobile:active { background: rgba(255,255,255,0.18); }
+
+/* 相机拖动区域 */
+.camera-drag-zone {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  touch-action: none;
+}
+
+/* 对话点击遮罩 */
+.dialogue-tap-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 450;
+  background: transparent;
+}
+
+/* 设置面板移动端适配 */
+.settings-overlay {
+  z-index: 500;
+}
+.settings-overlay .settings-panel {
+  min-width: auto;
+  width: 80vw;
+  max-width: 300px;
+  max-height: 78vh;
+  overflow-y: auto;
+  padding: 20px 24px;
+  border-radius: 16px;
+}
+.settings-overlay .settings-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.settings-overlay .settings-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.settings-overlay .settings-group { font-size: 13px; }
+.settings-overlay .settings-group label { font-size: 13px; }
+.settings-overlay .lang-switch button {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  background: rgba(0,0,0,0.03);
+  color: #666;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.settings-overlay .lang-switch button.active {
+  background: #4a9eff;
+  border-color: #4a9eff;
+  color: #fff;
+}
+.setting-disabled { opacity: 0.5; pointer-events: none; }
 
 </style>
