@@ -70,9 +70,7 @@ export default {
 
 <style scoped>
 .quest-panel {
-  position: fixed;
-  left: 0;
-  top: 100px;
+  position: relative;
   background: transparent;
   padding: 12px 16px;
   min-width: 200px;

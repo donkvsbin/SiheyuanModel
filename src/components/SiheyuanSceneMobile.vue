@@ -96,11 +96,14 @@
     <!-- 磨墨小游戏界面 -->
     <InkGrinding :visible="showInkGrinding" :locale="locale" @complete="handleInkGrindingComplete" />
 
-    <!-- 任务面板 -->
-    <QuestPanel
-      v-if="questManager && introCompleted"
-      :quest-manager="questManager"
-    />
+    <!-- 左侧 HUD：任务 + 道具 -->
+    <div class="left-hud">
+      <QuestPanel
+        v-if="questManager && introCompleted"
+        :quest-manager="questManager"
+      />
+      <InventoryPanel :story-manager="storyManager" :locale="locale" />
+    </div>
 
     <!-- 剧情介绍 -->
     <StoryIntro v-if="showIntro && !loading && !introCompleted" @complete="introCompleted = true" />
@@ -144,6 +147,7 @@ import {QuestManager} from '../game/QuestManager.js';
 import FamilyPuzzle from './FamilyPuzzle.vue';
 import InkGrinding from './InkGrinding.vue';
 import QuestPanel from './QuestPanel.vue';
+import InventoryPanel from './InventoryPanel.vue';
 
 export default {
   components: {
@@ -152,7 +156,8 @@ export default {
     StoryIntro,
     FamilyPuzzle,
     InkGrinding,
-    QuestPanel
+    QuestPanel,
+    InventoryPanel
   },
   props: {
     isNewGame: {
@@ -228,7 +233,7 @@ export default {
       musicVolume: 0.5,
       bgm: null,
       _musicDelayTimer: null,
-      _bgmTracksRemaining: null, // 当前轮未播放的曲目，空则重新洗牌
+
       _pendingBgmStart: false, // 等待用户交互后播放
       _bgmStarted: false, // 音乐是否已开始播放
       // 剧情系统
@@ -1923,24 +1928,12 @@ export default {
 
     startBgm() {
       if (!this.bgm) {
-        const audio = new Audio();
+        const audio = new Audio('/music/playing/Ieta.ogg');
+        audio.loop = true;
         audio.volume = Math.max(0, Math.min(1, this.musicVolume));
         audio.muted = !this.musicEnabled;
-        audio.addEventListener('ended', () => this.playNextBgm());
         this.bgm = audio;
       }
-      this.playNextBgm();
-    },
-
-    playNextBgm() {
-      if (!this.bgm || !this.musicEnabled) return;
-      const allTracks = ['Begining.mp3', 'Dry Hands.mp3', 'Living Mice.mp3', 'Mice on Venus.mp3'];
-      if (!this._bgmTracksRemaining || this._bgmTracksRemaining.length === 0) {
-        this._bgmTracksRemaining = [...allTracks];
-      }
-      const idx = Math.floor(Math.random() * this._bgmTracksRemaining.length);
-      const track = this._bgmTracksRemaining.splice(idx, 1)[0];
-      this.bgm.src = `/music/playing/${track}`;
       this.bgm.play().catch(() => { });
     },
 
@@ -3777,6 +3770,14 @@ export default {
   height: 100dvh;
   position: relative;
   overflow: hidden;
+}
+
+.left-hud {
+  position: fixed;
+  left: 0;
+  top: 100px;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .loading-overlay {
