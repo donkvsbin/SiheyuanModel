@@ -140,6 +140,35 @@ export function getFamilyPhotoShortDialogue(locale) {
     return shortDialogues[locale] || shortDialogues['zh'];
 }
 
+// 结局后对话（石榴分享、结局动画播完后）
+export function getPostEndingDialogue(locale) {
+    const dialogues = {
+        zh: [
+            { speaker: "王爷爷", text: "石榴甜吗？", expression: "笑" },
+            { speaker: "你", text: "甜。汁水很足，就是籽儿有点多。" },
+            { speaker: "王爷爷", text: "吃石榴，籽多是好事。多子多福，老一辈都这么说。" },
+            { speaker: "你", text: "王爷爷，院子里的故事我都看完了。那张照片，我拼上了。" },
+            { speaker: "王爷爷", text: "嗯。老三那页，也补上了。", expression: "眼睛有些湿润" },
+            { speaker: "王爷爷", text: "人这一辈子啊，争争吵吵，到最后，还是放不下。" },
+            { speaker: "你", text: "他会回来的。" },
+            { speaker: "王爷爷", text: "也许吧。这院子，我给他留着。" },
+            { speaker: "王爷爷", text: "孩子，有空常来坐坐。" },
+        ],
+        en: [
+            { speaker: "Grandpa Wang", text: "Were the pomegranates sweet?", expression: "smiling" },
+            { speaker: "You", text: "Very sweet. The juice was plentiful, though the seeds were many." },
+            { speaker: "Grandpa Wang", text: "Eating pomegranates, many seeds is a good thing. Many seeds, many blessings, as the elders say." },
+            { speaker: "You", text: "Grandpa Wang, I've seen all the stories in the courtyard. I put that photo together." },
+            { speaker: "Grandpa Wang", text: "Mm. And the Third's page, it's filled in too.", expression: "eyes glistening" },
+            { speaker: "Grandpa Wang", text: "A lifetime — quarrels and fights. In the end, you still can't let go." },
+            { speaker: "You", text: "He'll come back." },
+            { speaker: "Grandpa Wang", text: "Maybe. This courtyard, I'll keep it for him." },
+            { speaker: "Grandpa Wang", text: "Child, come visit more often when you can." },
+        ]
+    };
+    return dialogues[locale] || dialogues['zh'];
+}
+
 // 全家福碎片对话后的简短提示语（摘石榴前第二次及以后对话）
 export function getPhotoPieceShortDialogue(locale) {
     const shortDialogues = {

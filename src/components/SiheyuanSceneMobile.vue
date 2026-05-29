@@ -130,7 +130,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {StoryManager} from '../game/StoryManager.js';
 import {DialogueSystem} from '../game/DialogueSystem.js';
 import {CollectionSystem} from '../game/CollectionSystem.js';
-import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getInkStickDialogue, getPhotoPieceDialogue, getPhotoPieceDialoguePart2a, getPhotoPieceDialoguePart2b, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
+import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getInkStickDialogue, getPhotoPieceDialogue, getPhotoPieceDialoguePart2a, getPhotoPieceDialoguePart2b, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getPostEndingDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
 import {i18n} from '../utils/i18n.js';
 
 import StoryIntro from './StoryIntro.vue';
@@ -2097,6 +2097,22 @@ export default {
           }
           // 播放结尾动画
           this.playEnding();
+        }, { avatarOverride: '/photo/Character2D/oldman.webp' });
+        return;
+      }
+
+      // 结局后对话（石榴分享已完成，结局已播完）
+      if (this.storyManager.getFlag('pomegranate_share_completed')) {
+        const postEndingDialogue = getPostEndingDialogue(this.locale);
+        this.isInDialogue = true;
+        this.dialogueSystem.start(postEndingDialogue, () => {
+          this.isInDialogue = false;
+          this.dialogueCooldown = true;
+          this.pointerLockJustActivated = true;
+          setTimeout(() => {
+            this.dialogueCooldown = false;
+            this.pointerLockJustActivated = false;
+          }, 200);
         }, { avatarOverride: '/photo/Character2D/oldman.webp' });
         return;
       }
