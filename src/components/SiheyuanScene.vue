@@ -216,8 +216,7 @@
       </div>
     </div>
 
-    <!-- 书法临摹界面 -->
-    <CalligraphyPractice v-if="showCalligraphyPractice" :locale="locale" @close="showCalligraphyPractice = false" @enter="isInCalligraphy = true" />
+
 
     <!-- 茶道小游戏界面 -->
     <TeaCeremony
@@ -325,7 +324,6 @@ import {DialogueSystem} from '../game/DialogueSystem.js';
 import {CollectionSystem} from '../game/CollectionSystem.js';
 import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getInkStickDialogue, getPhotoPieceDialogue, getPhotoPieceDialoguePart2a, getPhotoPieceDialoguePart2b, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
 import {i18n} from '../utils/i18n.js';
-import CalligraphyPractice from './CalligraphyPractice.vue';
 import TeaCeremony from './TeaCeremony.vue';
 import CollectionView from './CollectionView.vue';
 import StoryIntro from './StoryIntro.vue';
@@ -341,7 +339,6 @@ import AIChat from './AIChat.vue';
 
 export default {
   components: {
-    CalligraphyPractice,
     TeaCeremony,
     CollectionView,
     StoryIntro,
@@ -449,10 +446,6 @@ export default {
       swingReturnPosition: null,
       // FPS显示
       currentFPS: 60,
-      // 书法临摹界面
-      showCalligraphyPractice: false,
-      // 临摹模式状态
-      isInCalligraphy: false,
       // 茶道游戏状态
       showTeaCeremony: false,
       teaCeremonyStep: 0,
@@ -551,14 +544,8 @@ export default {
     }
   },
   watch: {
-    showCalligraphyPractice(v) {
-      // 临摹界面关闭时，恢复游戏控制
-      if (!v) {
-        this.isInCalligraphy = false;
-        // 重新锁定鼠标
-        this.requestLock();
-      }
-    },
+
+
     showTeaCeremony(v) {
       // 茶道界面关闭时，恢复游戏控制
       if (!v) {
@@ -898,7 +885,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、书法、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
+      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1040,29 +1027,6 @@ export default {
           undefined,
           (err) => {
             console.error('毽子模型加载失败:', err);
-            this.updateLoadingProgress();
-          }
-        );
-      };
-
-      const loadCalligraphy = () => {
-        const calligraphyLoader = new GLTFLoader();
-        calligraphyLoader.setDRACOLoader(dracoLoader);
-        calligraphyLoader.load(
-          '/models/calligraphy.glb',
-          (gltf) => {
-            const model = gltf.scene;
-            model.position.set(1, 15.75, 18.5);
-            model.scale.setScalar(1.5);
-            model.rotation.y = Math.PI / 2;
-            scene.add(model);
-            this.calligraphy = model;
-            optimizeModel(model, true); // 静态模型
-            this.updateLoadingProgress();
-          },
-          undefined,
-          (err) => {
-            console.error('calligraphy模型加载失败:', err);
             this.updateLoadingProgress();
           }
         );
@@ -1752,7 +1716,6 @@ export default {
           loadFan();
           loadDiqi();
           loadJianzi();
-          loadCalligraphy();
           loadFamilyBook();
           loadBrush();
           loadInkStick();
@@ -1801,7 +1764,8 @@ export default {
         this.world.step();
 
         // 打开 ESC 面板、坐在秋千上、临摹、茶道或tips显示时禁止 WASD 等移动操作
-        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInCalligraphy && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
+        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && 
+!this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
           if (this.flyMode) {
             // 飞行模式：无碰撞，自由移动
             const flySpeed = 8;
@@ -2200,7 +2164,8 @@ export default {
 
         // H键打开AI聊天界面（只能通过关闭按钮关闭）
         if (key === 'h') {
-          if (!this.showAIChat && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showCollection) {
+          if (!this.showAIChat && !this.isInDialogue && !this.showTeaCeremony
+ && !this.showCollection) {
             // 先退出指针锁定，再显示界面
             if (document.pointerLockElement) {
               document.exitPointerLock();
@@ -2216,7 +2181,8 @@ export default {
           if (this.showQuestPanel) {
             this.closeQuestPanel();
             return;
-          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showCollection) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony
+ && !this.showAIChat && !this.showCollection) {
             if (document.pointerLockElement) {
               document.exitPointerLock();
             }
@@ -2232,7 +2198,8 @@ export default {
             // 如果已打开，则关闭
             this.closeCollection();
             return;
-          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony
+ && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
             // 如果未打开且满足条件，则打开
             this.openCollection();
             return;
@@ -2242,7 +2209,8 @@ export default {
 
         // P键拍照
         if (key === 'p') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony
+) {
             this.takePhoto();
             return;
           }
@@ -2251,7 +2219,8 @@ export default {
 
         // O键打开照片画廊
         if (key === 'o') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony
+) {
             this.openPhotoGallery();
             return;
           }
@@ -2315,7 +2284,8 @@ export default {
       this.onMouseMove = (e) => {
         // 直接通过鼠标移动旋转视角，无需拖拽
         // 对话、临摹、茶道、收集界面、AI聊天或tips显示时禁止视角控制
-        if (this.isInDialogue || this.isInCalligraphy || this.isInPuzzle || this.isInInkGrinding || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
+        if (this.isInDialogue 
+|| this.isInPuzzle || this.isInInkGrinding || this.showTeaCeremony || this.showCollection || this.showAIChat || this.showQuestPanel || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) return;
         if (document.pointerLockElement) {
           // 跳过指针锁定刚激活时的第一帧移动，避免视角乱跳
           if (this.pointerLockJustActivated) return;
@@ -3166,8 +3136,6 @@ export default {
         this.handleSwingInteract();
       } else if (this.currentInteraction.id === 'pomegranate') {
         this.handlePomegranateInteract();
-      } else if (this.currentInteraction.id === 'calligraphy') {
-        this.handleCalligraphyInteract();
       } else if (this.currentInteraction.id === 'oldwoman') {
         this.handleOldwomanInteract();
       } else if (this.currentInteraction.id === 'cat') {
@@ -3528,20 +3496,6 @@ export default {
       this.dialogueSystem.showTips(tipsText, () => {
         this.pointerLockJustActivated = true;
         setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-      });
-    },
-
-    // 处理纸墨笔砚交互
-    handleCalligraphyInteract() {
-      if (this.dialogueSystem.isTipsShowing()) return;
-      // 解锁收集物
-      this.unlockCollectionItem('calligraphy');
-      const tipsText = getTipsText(this.locale, 'calligraphy');
-      this.dialogueSystem.showTips(tipsText, () => {
-        this.pointerLockJustActivated = true;
-        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        // 打开书法临摹界面
-        this.showCalligraphyPractice = true;
       });
     },
 

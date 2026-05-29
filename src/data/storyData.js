@@ -560,11 +560,6 @@ export function getTipsText(locale, tipId) {
             zh: "石榴多籽，象征多子多福。中秋节常吃石榴，象征团圆。",
             en: "Pomegranates have many seeds, symbolizing fertility and prosperity. Eating pomegranates during the Mid-Autumn Festival symbolizes family reunion."
         },
-        //笔墨纸砚
-        calligraphy: {
-            zh: "笔墨纸砚，文房四宝。毛笔柔软，宣纸吸墨，墨分五色，砚台研墨。书法是中国传统艺术，一笔一画皆有韵味。",
-            en: "The Four Treasures of the Study: brush, ink, paper, and inkstone. The brush is soft, Xuan paper absorbs ink, ink has five shades, and the inkstone grinds the ink. Calligraphy is a traditional Chinese art, where every stroke has its own charm."
-        },
         //猫
         cat: {
             zh: "一只橘白相间的老猫，正慵懒地打着盹儿。",
@@ -722,15 +717,6 @@ export const interactionPoints = [
         action: "interact",
         condition: "photopiece_talk_completed",
         once: true
-    },
-    {
-        id: "calligraphy",
-        name: "纸墨笔砚",
-        nameEn: "Four Treasures",
-        position: { x: 1, y: 16, z: 18 },
-        radius: 2,
-        action: "interact",
-        condition: null
     },
     {
         id: "oldwoman",

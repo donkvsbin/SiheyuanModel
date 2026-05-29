@@ -84,11 +84,7 @@
       </div>
     </div>
 
-    <!-- 书法临摹界面 -->
-    <CalligraphyPractice v-if="showCalligraphyPractice" :locale="locale" @close="showCalligraphyPractice = false" @enter="isInCalligraphy = true" />
 
-    <!-- 茶道小游戏界面 -->
-    <TeaCeremony ref="teaCeremony" :visible="showTeaCeremony" :locale="locale" :current-step="teaCeremonyStep" :score="teaCeremonyScore" :rating="teaCeremonyRating" :is-complete="teaCeremonyComplete" @close="handleTeaCeremonyClose" @start="handleTeaStart" />
 
     <!-- 全家福拼图界面 -->
     <FamilyPuzzle :visible="showFamilyPuzzle" @complete="handlePuzzleComplete" />
@@ -128,8 +124,6 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
-import {GTAOManager, GTAOPresets} from '../utils/GTAOManager.js';
-
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -138,10 +132,9 @@ import {DialogueSystem} from '../game/DialogueSystem.js';
 import {CollectionSystem} from '../game/CollectionSystem.js';
 import {getChuihuaDialogue, getCollectionData, getDeepTalkDialogue, getFamilyBookDialogue, getFamilyBookShortDialogue, getFamilyPhotoDialogue, getFamilyPhotoShortDialogue, getInkStickDialogue, getPhotoPieceDialogue, getPhotoPieceDialoguePart2a, getPhotoPieceDialoguePart2b, getPhotoPieceShortDialogue, getPomegranateShareDialogue, getQuestData, getShortDialogue, getStoryData, getTipsText, interactionPoints} from '../data/storyData.js';
 import {i18n} from '../utils/i18n.js';
-import CalligraphyPractice from './CalligraphyPractice.vue';
-import TeaCeremony from './TeaCeremony.vue';
+
 import StoryIntro from './StoryIntro.vue';
-import {TeaCeremony as TeaCeremonyGame} from '../game/TeaCeremony.js';
+
 import {saveManager} from '../game/SaveManager.js';
 import {QuestManager} from '../game/QuestManager.js';
 import FamilyPuzzle from './FamilyPuzzle.vue';
@@ -151,8 +144,7 @@ import InventoryPanel from './InventoryPanel.vue';
 
 export default {
   components: {
-    CalligraphyPractice,
-    TeaCeremony,
+
     StoryIntro,
     FamilyPuzzle,
     InkGrinding,
@@ -211,13 +203,9 @@ export default {
       // 默认环境光压暗一点、方向光更强，配合 AO 让方块之间的阴影更明显（类似 MC）
       ambientIntensity: 0.6,
       directionalIntensity: 4.5,
-      // AO 参数：专门控制"建模与建模之间"的平滑阴影
-      aoIntensity: 2.8, // 强化强度，让建模间阴影更加明显
-      aoRadius: 3.5,   // 增大范围，强化遮蔽效果
-      // GTAO 开关
-      gtaoEnabled: true,
       bloomStrength: 0.2,
-      toneMappingExposure: 1.25  ,
+      toneMappingExposure: 1.25,
+      renderScale: 1.0, // 内部渲染分辨率比例，降低显存占用
       targetFPS: 60, // 移动端目标帧率（实际受限于设备刷新率）
       sunTime: 10, // 太阳时间 9~18点
       // 时间系统
@@ -256,13 +244,6 @@ export default {
       swingReturnPosition: null,
       // FPS显示
       currentFPS: 60,
-      // 书法临摹界面
-      showCalligraphyPractice: false,
-      // 临摹模式状态
-      isInCalligraphy: false,
-      // 茶道游戏状态
-      showTeaCeremony: false,
-      teaCeremonyStep: 0,
       // 全家福拼图
       showFamilyPuzzle: false,
       isInPuzzle: false,
@@ -274,12 +255,6 @@ export default {
       photoGallery: [],
       showPhotoGallery: false,
       previewPhoto: null,
-      teaCeremonyScore: 0,
-      teaCeremonyRating: { text: '' },
-      teaCeremonyComplete: false,
-      teaCeremonyGame: null,
-      teaCeremonyStartTime: 0,
-      hasCompletedTeaCeremony: false,
       // 收集系统
       collectionSystem: null,
       showCollection: false,
@@ -374,28 +349,6 @@ export default {
     }
   },
   watch: {
-    showCalligraphyPractice(v) {
-      // 临摹界面关闭时，恢复游戏控制
-      if (!v) {
-        this.isInCalligraphy = false;
-        // 重新锁定鼠标
-        this.requestLock();
-      }
-    },
-    showTeaCeremony(v) {
-      // 茶道界面关闭时，恢复游戏控制
-      if (!v) {
-        if (this.teaCeremonyGame) {
-          this.teaCeremonyGame.end();
-        }
-        this.teaCeremonyStep = null;
-        this.teaCeremonyScore = 0;
-        this.teaCeremonyRating = { text: '' };
-        this.teaCeremonyComplete = false;
-        // 重新锁定鼠标
-        this.requestLock();
-      }
-    },
     showCollection(v) {
       // 收集界面关闭时，恢复游戏控制
       if (!v) {
@@ -418,23 +371,6 @@ export default {
     musicVolume(v) {
       if (this.bgm) this.bgm.volume = Math.max(0, Math.min(1, v));
     },
-    // AO 相关：滑杆一动就实时更新"建模之间的阴影"
-    aoIntensity(v) {
-      if (this.gtaoManager) {
-        this.gtaoManager.setIntensity(v);
-      }
-    },
-    aoRadius(v) {
-      if (this.gtaoManager) {
-        this.gtaoManager.setRadius(v);
-      }
-    },
-    // GTAO 开关
-    gtaoEnabled(v) {
-      if (this.gtaoManager) {
-        this.gtaoManager.setEnabled(v);
-      }
-    }
   },
   mounted() {
     this.initRapier().then(() => {
@@ -457,7 +393,6 @@ export default {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     if (this.animationId) cancelAnimationFrame(this.animationId);
-    if (this.gtaoManager) this.gtaoManager.dispose();
   },
   methods: {
     // 保存并退出游戏
@@ -555,45 +490,40 @@ export default {
       cubeLoader.setPath('/Sky/chenwu_textures/');
       scene.background = cubeLoader.load(['nx.jpg', 'px.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg']);
 
-      // 渲染器：强制使用独立显卡
+      // 渲染器：内部低分辨率渲染，CSS 拉伸全屏，大幅降低显存
+      const renderScale = this.renderScale;
+      const renderW = Math.round(window.innerWidth * renderScale);
+      const renderH = Math.round(window.innerHeight * renderScale);
+      this._renderW = renderW;
+      this._renderH = renderH;
+
       const renderer = new THREE.WebGLRenderer({
         antialias: false,
         powerPreference: "high-performance",
         logarithmicDepthBuffer: false,
-        failIfMajorPerformanceCaveat: false // 强制使用独显，即使性能较差也不回退核显
+        failIfMajorPerformanceCaveat: false
       });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0)); // 移动端限制像素比省显存
+      renderer.setSize(renderW, renderH);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFShadowMap; // 改用PCF，比Soft快
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = this.toneMappingExposure;
-      renderer.sortObjects = true; // 显式开启排序
+      renderer.sortObjects = true;
+      // CSS 拉伸 canvas 到全屏
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
       this.$refs.container.appendChild(renderer.domElement);
 
-      // 后期处理合成器
+      // 后期处理合成器（内部分辨率）
       const composer = new EffectComposer(renderer);
       this.composer = composer;
       const renderPass = new RenderPass(scene, camera);
       composer.addPass(renderPass);
 
-      // 先做 GTAO（方块间自然光影），再做 Bloom
-      // 使用建模强化版预设，极大增强建模间的阴影对比度
-      this.gtaoManager = new GTAOManager({
-        ...GTAOPresets.modelingEnhanced,
-        radius: this.aoRadius,
-        intensity: this.aoIntensity,
-        samples: 8,       // 移动端降低采样
-        distanceExponent: 1.5,
-        blurRadius: 1,
-        thickness: 2.0
-      });
-      const gtaoPass = this.gtaoManager.init(scene, camera, window.innerWidth, window.innerHeight);
-      composer.addPass(gtaoPass);
-
-      // 提高 Bloom 阈值，只让太阳等极亮区域泛光，避免整片天空过亮把建筑对比度"洗掉"，从而任意视角都能看到 GTAO 方块阴影
+      // Bloom：只让太阳等极亮区域泛光
       const bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth / 4, window.innerHeight / 4),
+        new THREE.Vector2(Math.round(renderW / 4), Math.round(renderH / 4)),
         0.52,
         this.bloomStrength,
         0.9
@@ -602,11 +532,10 @@ export default {
       this.bloomPass = bloomPass;
       this.renderer = renderer;
 
-      // 移动端：移除体积光、色彩分级、暗角以节省显存，仅保留 GTAO + Bloom + SMAA
-      // 暖色调通过 renderer.toneMapping = ACESFilmicToneMapping 实现
+      // 移动端后处理：Bloom + SMAA
 
       // 添加 SMAA 抗锯齿（解决远距离锯齿问题）
-      const smaaPass = new SMAAPass(window.innerWidth, window.innerHeight);
+      const smaaPass = new SMAAPass(renderW, renderH);
       composer.addPass(smaaPass);
       this.smaaPass = smaaPass;
 
@@ -692,7 +621,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、书法、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
+      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -834,29 +763,6 @@ export default {
           undefined,
           (err) => {
             console.error('毽子模型加载失败:', err);
-            this.updateLoadingProgress();
-          }
-        );
-      };
-
-      const loadCalligraphy = () => {
-        const calligraphyLoader = new GLTFLoader();
-        calligraphyLoader.setDRACOLoader(dracoLoader);
-        calligraphyLoader.load(
-          '/models/calligraphy.glb',
-          (gltf) => {
-            const model = gltf.scene;
-            model.position.set(1, 15.75, 18.5);
-            model.scale.setScalar(1.5);
-            model.rotation.y = Math.PI / 2;
-            scene.add(model);
-            this.calligraphy = model;
-            optimizeModel(model, true); // 静态模型
-            this.updateLoadingProgress();
-          },
-          undefined,
-          (err) => {
-            console.error('calligraphy模型加载失败:', err);
             this.updateLoadingProgress();
           }
         );
@@ -1342,14 +1248,14 @@ export default {
                 child.receiveShadow = true;
               }
             });
-            model.scale.set(3, 3, 3.6);
-            model.position.set(-31, 16, 18);
+            model.scale.set(2.1, 2, 2.4);
+            model.position.set(-28.6, 16.5, 19);
             model.updateMatrixWorld();
             const rightBox = new THREE.Box3().setFromObject(model);
             const rightPivot = new THREE.Group();
-            rightPivot.position.set(-31, 16, rightBox.max.z);
+            rightPivot.position.set(-28.6, 16.5, rightBox.max.z);
             scene.add(rightPivot);
-            model.position.set(0, 0, 18 - rightBox.max.z);
+            model.position.set(0, 0, 19 - rightBox.max.z);
             rightPivot.add(model);
             optimizeModel(model, true);
             this.doorPivot = rightPivot;
@@ -1357,11 +1263,11 @@ export default {
             // 左扇门
             const leftDoor = model.clone(true);
             leftDoor.scale.z = -leftDoor.scale.z;
-            leftDoor.position.set(-29, 16, 18);
+            leftDoor.position.set(-28.6, 16.5, 18);
             leftDoor.updateMatrixWorld();
             const leftBox = new THREE.Box3().setFromObject(leftDoor);
             const leftPivot = new THREE.Group();
-            leftPivot.position.set(-29, 16, leftBox.min.z);
+            leftPivot.position.set(-28.6, 16.5, leftBox.min.z);
             scene.add(leftPivot);
             leftDoor.position.set(0, 0, 18 - leftBox.min.z);
             leftPivot.add(leftDoor);
@@ -1373,10 +1279,10 @@ export default {
               leftPivot.rotation.y = -Math.PI / 2;
             } else if (this.world) {
               const doorBody = this.world.createRigidBody(
-                RAPIER.RigidBodyDesc.fixed().setTranslation(-30, 16.5, 18)
+                RAPIER.RigidBodyDesc.fixed().setTranslation(-28.6, 16.5, 18.5)
               );
               const doorCollider = this.world.createCollider(
-                RAPIER.ColliderDesc.cuboid(1.2, 2.5, 0.15),
+                RAPIER.ColliderDesc.cuboid(0.15, 2.5, 0.8),
                 doorBody
               );
               this.doorColliders = [doorCollider];
@@ -1545,7 +1451,6 @@ export default {
           loadFan();
           loadDiqi();
           loadJianzi();
-          loadCalligraphy();
           loadFamilyBook();
           loadBrush();
           loadInkStick();
@@ -1594,7 +1499,7 @@ export default {
         this.world.step();
 
         // 打开 ESC 面板、坐在秋千上、临摹、茶道或tips显示时禁止 WASD 等移动操作
-        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInCalligraphy && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
+        if (this.player && this.playerBody && !this.showSettings && !this.isOnSwing && !this.isInPuzzle && !this.isInInkGrinding && !(this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
           if (this.flyMode) {
             // 飞行模式：无碰撞，自由移动
             const flySpeed = 8;
@@ -1904,17 +1809,19 @@ export default {
       animate();
 
       this.onResize = () => {
+        const renderW = Math.round(window.innerWidth * this.renderScale);
+        const renderH = Math.round(window.innerHeight * this.renderScale);
+        this._renderW = renderW;
+        this._renderH = renderH;
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        composer.setSize(window.innerWidth, window.innerHeight);
-        // 同步 GTAO 分辨率
-        if (this.gtaoManager) {
-          this.gtaoManager.resize(window.innerWidth, window.innerHeight);
-        }
+        renderer.setSize(renderW, renderH);
+        renderer.domElement.style.width = '100%';
+        renderer.domElement.style.height = '100%';
+        composer.setSize(renderW, renderH);
         // 同步 SMAA 分辨率
         if (this.smaaPass) {
-          this.smaaPass.setSize(window.innerWidth, window.innerHeight);
+          this.smaaPass.setSize(renderW, renderH);
         }
       };
       window.addEventListener('resize', this.onResize);
@@ -1946,7 +1853,8 @@ export default {
 
         // H键打开AI聊天界面（只能通过关闭按钮关闭）
         if (key === 'h') {
-          if (!this.showAIChat && !this.isInDialogue && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showCollection) {
+          if (!this.showAIChat && !this.isInDialogue
+ && !this.showCollection) {
             // 先退出指针锁定，再显示界面
             if (document.pointerLockElement) {
               document.exitPointerLock();
@@ -1962,7 +1870,8 @@ export default {
           if (this.showQuestPanel) {
             this.closeQuestPanel();
             return;
-          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showCollection) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding
+ && !this.showAIChat && !this.showCollection) {
             if (document.pointerLockElement) {
               document.exitPointerLock();
             }
@@ -1978,7 +1887,8 @@ export default {
             // 如果已打开，则关闭
             this.closeCollection();
             return;
-          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
+          } else if (!this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding
+ && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery) {
             // 如果未打开且满足条件，则打开
             this.openCollection();
             return;
@@ -1988,7 +1898,8 @@ export default {
 
         // P键拍照
         if (key === 'p') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.showPhotoGallery && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding
+) {
             this.takePhoto();
             return;
           }
@@ -1997,7 +1908,8 @@ export default {
 
         // O键打开照片画廊
         if (key === 'o') {
-          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding && !this.showTeaCeremony && !this.showCalligraphyPractice) {
+          if (!this.showSettings && !this.showCollection && !this.showAIChat && !this.showQuestPanel && !this.isInDialogue && !this.isInPuzzle && !this.isInInkGrinding
+) {
             this.openPhotoGallery();
             return;
           }
@@ -2008,11 +1920,6 @@ export default {
 
         // 交互键F
         if (key === 'f') {
-          // 如果茶道游戏正在进行，处理茶道步骤
-          if (this.showTeaCeremony) {
-            this.handleTeaStep();
-            return;
-          }
           // 如果多页tips正在显示，完全跳过处理（DialogueSystem在捕获阶段处理）
           if (this.dialogueSystem && this.dialogueSystem.isTipsShowing() &&
               this.dialogueSystem.tipsPages && this.dialogueSystem.tipsPages.length > 0) {
@@ -2156,11 +2063,6 @@ export default {
       // 对话中：推进对话
       if (this.isInDialogue || (this.dialogueSystem && this.dialogueSystem.isTipsShowing())) {
         if (this.dialogueSystem) this.dialogueSystem.publicAdvance();
-        return;
-      }
-      // 茶道游戏中
-      if (this.showTeaCeremony) {
-        this.handleTeaStep();
         return;
       }
       // 正常交互
@@ -2550,7 +2452,7 @@ export default {
         this.showPhotoFlash = false;
       }, 150);
       
-      // 使用 composer 渲染一帧（包含 GTAO 等后期效果）
+      // 使用 composer 渲染一帧
       this.composer.render();
       
       // 从 WebGL canvas 直接读取数据（composer 已经渲染到屏幕）
@@ -2573,7 +2475,7 @@ export default {
         this.photoGallery.pop();
       }
       
-      console.log('📷 拍照成功！已保存到精彩瞬间（包含GTAO效果）');
+      console.log('📷 拍照成功！已保存到精彩瞬间');
     },
 
     // 打开照片画廊
@@ -2925,7 +2827,7 @@ export default {
 
     // 检查交互点
     checkInteractions() {
-      if (!this.player || this.isInDialogue || this.showTeaCeremony) return;
+      if (!this.player || this.isInDialogue) return;
 
       const playerPos = this.player.position;
       let nearestInteraction = null;
@@ -3016,8 +2918,6 @@ export default {
         this.handleSwingInteract();
       } else if (this.currentInteraction.id === 'pomegranate') {
         this.handlePomegranateInteract();
-      } else if (this.currentInteraction.id === 'calligraphy') {
-        this.handleCalligraphyInteract();
       } else if (this.currentInteraction.id === 'oldwoman') {
         this.handleOldwomanInteract();
       } else if (this.currentInteraction.id === 'cat') {
@@ -3381,20 +3281,6 @@ export default {
       });
     },
 
-    // 处理纸墨笔砚交互
-    handleCalligraphyInteract() {
-      if (this.dialogueSystem.isTipsShowing()) return;
-      // 解锁收集物
-      this.unlockCollectionItem('calligraphy');
-      const tipsText = getTipsText(this.locale, 'calligraphy');
-      this.dialogueSystem.showTips(tipsText, () => {
-        this.pointerLockJustActivated = true;
-        setTimeout(() => { this.pointerLockJustActivated = false; }, 50);
-        // 打开书法临摹界面
-        this.showCalligraphyPractice = true;
-      });
-    },
-
     // 处理老奶奶交互（多轮对话）
     handleOldwomanInteract() {
       if (this.isInDialogue) return;
@@ -3522,79 +3408,10 @@ export default {
 
     // 处理茶道交互
     handleTeaInteract() {
-      if (this.showTeaCeremony) return;
-      
-      // 解锁收集物
+      if (this.dialogueSystem.isTipsShowing()) return;
       this.unlockCollectionItem('tea');
-      
-      // 检查是否已完成过茶道游戏
-      if (this.hasCompletedTeaCeremony) {
-        // 第二次及以后：显示茶文化介绍
-        this.showTeaCultureDialogue();
-        return;
-      }
-      
-      // 初始化茶道游戏（但不开始）
-      this.teaCeremonyGame = new TeaCeremonyGame();
-      this.teaCeremonyGame.onStepChange = (step) => {
-        this.teaCeremonyStep = step;
-      };
-      this.teaCeremonyGame.onComplete = (result) => {
-        this.teaCeremonyScore = result.score;
-        this.teaCeremonyRating = result.rating;
-        this.teaCeremonyComplete = true;
-        this.teaCeremonyStep = null; // 完成时步骤设为null，显示完成界面
-        // 标记已完成茶道游戏
-        this.hasCompletedTeaCeremony = true;
-        // 茶道完成时显示鼠标
-        document.exitPointerLock();
-      };
-      
-      this.showTeaCeremony = true;
-      this.teaCeremonyComplete = false;
-      this.teaCeremonyStep = null; // 初始为null，显示介绍页面
-      
-      // 交互后立即显示鼠标
-      document.exitPointerLock();
-    },
-
-    // 显示茶文化介绍tips
-    showTeaCultureDialogue() {
       const tipsPages = getTipsText(this.locale, 'tea');
-      this.dialogueSystem.showMultiPageTips(tipsPages, () => {
-        this.pointerLockJustActivated = true;
-        this.dialogueCooldown = true;
-        setTimeout(() => {
-          this.pointerLockJustActivated = false;
-          this.dialogueCooldown = false;
-        }, 500);
-      });
-    },
-
-    // 茶道步骤处理
-    handleTeaStep() {
-      if (!this.showTeaCeremony || !this.teaCeremonyGame) return;
-      
-      // 获取当前指示器位置
-      const teaCeremonyComponent = this.$refs.teaCeremony;
-      const indicatorPosition = teaCeremonyComponent ? teaCeremonyComponent.getIndicatorPosition() : 0;
-      
-      // 根据指示器位置判断是否完美
-      const isPerfect = indicatorPosition >= 40 && indicatorPosition <= 60;
-      
-      const result = this.teaCeremonyGame.handleStep(isPerfect);
-      
-      // 重置指示器动画
-      if (!result.finished && teaCeremonyComponent) {
-        teaCeremonyComponent.resetIndicator();
-      }
-    },
-
-    // 茶道完成关闭
-    handleTeaCeremonyClose() {
-      this.showTeaCeremony = false;
-      // 重新锁定鼠标
-      this.requestLock();
+      this.dialogueSystem.showMultiPageTips(tipsPages);
     },
 
     // 全家福拼图完成
@@ -3616,15 +3433,6 @@ export default {
       this.pointerLockJustActivated = true;
       setTimeout(() => { this.pointerLockJustActivated = false; }, 200);
       this.requestLock();
-    },
-
-    // 茶道游戏开始
-    handleTeaStart() {
-      // 开始茶道游戏
-      this.teaCeremonyGame.start(this.locale);
-      this.teaCeremonyStep = this.teaCeremonyGame.getCurrentStep();
-      this.teaCeremonyScore = 0;
-      this.teaCeremonyComplete = false;
     },
 
     // 处理秋千交互
@@ -3772,10 +3580,18 @@ export default {
   overflow: hidden;
 }
 
+/* 确保 canvas 填满容器（内部分辨率缩放模式下依赖此规则） */
+.scene-container :deep(canvas) {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
 .left-hud {
   position: fixed;
   left: 0;
-  top: 100px;
+  top: 16px;
   z-index: 100;
   pointer-events: none;
 }
