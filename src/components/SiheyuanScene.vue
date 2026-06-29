@@ -284,19 +284,6 @@
       @close="closeQuestPanel"
     />
 
-    <!-- 结尾动画 -->
-    <div v-if="showEnding" class="ending-overlay">
-      <div class="ending-content">
-        <div
-          v-for="(text, index) in endingTexts"
-          :key="index"
-          class="ending-text"
-          :class="{ 'show': index <= endingTextIndex }"
-        >
-          {{ text }}
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -480,9 +467,7 @@ export default {
       // 任务面板
       showQuestPanel: false,
       // 结尾动画
-      showEnding: false,
-      endingTextIndex: 0,
-      endingTexts: []
+
     };
   },
   computed: {
@@ -2146,7 +2131,7 @@ export default {
 
     startBgm() {
       if (!this.bgm) {
-        const audio = new Audio('/music/playing/Ieta.ogg');
+        const audio = new Audio('/music/playing/bgm.mp3');
         audio.loop = true;
         audio.volume = Math.max(0, Math.min(1, this.musicVolume));
         audio.muted = !this.musicEnabled;
@@ -2874,43 +2859,11 @@ export default {
 
     // 播放结尾动画
     playEnding() {
-      // 设置结尾文字
-      this.endingTexts = this.locale === 'zh' ? [
-        '石榴树又开花了。',
-        '王爷爷说，等石榴熟了，要留给三舅尝尝。',
-        '门一直开着。',
-        '等他们回来。'
-      ] : [
-        'The pomegranate tree is blooming again.',
-        'Grandpa Wang said, when the pomegranates are ripe, leave some for the third uncle.',
-        'The door remains open.',
-        'Waiting for them to return.'
-      ];
-      this.endingTextIndex = -1;
-      this.showEnding = true;
-      
-      // 逐行显示文字
-      const showNextLine = () => {
-        if (this.endingTextIndex < this.endingTexts.length - 1) {
-          this.endingTextIndex++;
-          setTimeout(showNextLine, 3000); // 每3秒显示下一行
-        } else {
-          // 最后一行显示后，等待一段时间然后继续游戏
-          setTimeout(() => {
-            this.showEnding = false;
-            // 更新任务为"尽情探索四合院"
-            const currentQuest = this.questManager.getCurrentQuest();
-            if (currentQuest) {
-              this.questManager.completeCurrentQuest();
-            }
-            // 重新锁定鼠标，继续游戏
-            this.requestLock();
-          }, 5000);
-        }
-      };
-      
-      // 延迟开始显示第一行
-      setTimeout(showNextLine, 1000);
+      const currentQuest = this.questManager.getCurrentQuest();
+      if (currentQuest) {
+        this.questManager.completeCurrentQuest();
+      }
+      this.requestLock();
     },
 
     // 更新加载进度
@@ -4337,54 +4290,6 @@ export default {
   letter-spacing: 1px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
-
-/* 结尾动画 */
-.ending-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: black;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeToBlack 2s ease forwards;
-}
-
-@keyframes fadeToBlack {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.ending-content {
-  text-align: center;
-  padding: 40px;
-}
-
-.ending-text {
-  color: #fff;
-  font-size: 28px;
-  font-weight: 400;
-  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
-  letter-spacing: 2px;
-  line-height: 1.8;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 1s ease;
-  margin: 20px 0;
-}
-
-.ending-text.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .footer-text {
   position: absolute;
   bottom: 20px;

@@ -1835,7 +1835,7 @@ export default {
 
     startBgm() {
       if (!this.bgm) {
-        const audio = new Audio('/music/playing/Ieta.ogg');
+        const audio = new Audio('/music/playing/bgm.mp3');
         audio.loop = true;
         audio.volume = Math.max(0, Math.min(1, this.musicVolume));
         audio.muted = !this.musicEnabled;

@@ -10,6 +10,9 @@ export class DialogueSystem {
         this.currentIndex = 0;
         this.onComplete = null;
         this.elements = {};
+        this.voiceAudio = new Audio();
+        this.voiceAudio.preload = 'auto';
+        this.voiceBasePath = '/vocal/1/';
         this.characterImages = {
             'zh': {
                 '王爷爷': '/photo/Character2D/oldman.webp',
@@ -316,6 +319,45 @@ export class DialogueSystem {
         }
     }
 
+    getVoicePath(text) {
+        if (!text) return null;
+        // 去句首省略号、括号内容
+        let t = text.replace(/^[.…。\s]+/, '').replace(/^（[^）]*）/, '');
+        // 取到第一条逗号或句号为止
+        const m1 = t.match(/^([^，。？！\n]+)/);
+        let chunk = m1 ? m1[1] : t.slice(0, 8);
+        // 如果第一段太短，继续取到下一个断句
+        if (chunk.length < 3) {
+            const rest = t.slice(m1[0].length);
+            const m2 = rest.match(/^[，。？！\n]*([^，。？！\n]+)/);
+            if (m2) chunk += m2[1];
+        }
+        const filename = chunk.replace(/[，。？！、；：—…\s"'（）~]/g, '');
+        return filename ? this.voiceBasePath + filename + '.mp3' : null;
+    }
+
+    playVoicePath(path) {
+        this.stopVoice();
+        this.voiceAudio.src = path;
+        this.voiceAudio.play().catch(() => {});
+    }
+
+    playVoice(text) {
+        this.stopVoice();
+        const path = this.getVoicePath(text);
+        if (!path) return;
+        this.voiceAudio.src = path;
+        this.voiceAudio.play().catch(() => {});
+    }
+
+    stopVoice() {
+        try {
+            this.voiceAudio.pause();
+            this.voiceAudio.currentTime = 0;
+            this.voiceAudio.src = '';
+        } catch (e) {}
+    }
+
     start(dialogueData, onComplete, options = {}) {
         this.currentDialogue = dialogueData;
         this.currentIndex = 0;
@@ -371,6 +413,15 @@ export class DialogueSystem {
         }
         this.updateAvatar(line.speaker, overrideImage);
 
+        // 播放配音：优先使用数据中标注的路径，否则根据文本匹配
+        if (line.speaker && line.text) {
+            if (line.voice) {
+                this.playVoicePath(line.voice);
+            } else {
+                this.playVoice(line.text);
+            }
+        }
+
         // 开始打字机效果
         this.startTyping(line.text || '');
     }
@@ -421,6 +472,7 @@ export class DialogueSystem {
 
     nextLine() {
         if (!this.isActive) return;
+        this.stopVoice();
         this.currentIndex++;
         this.showCurrentLine();
     }
@@ -450,6 +502,7 @@ export class DialogueSystem {
     }
 
     end() {
+        this.stopVoice();
         // 清除打字定时器
         if (this.typeTimer) {
             clearInterval(this.typeTimer);

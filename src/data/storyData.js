@@ -17,11 +17,11 @@ export const storyData = {
                         description: "玩家在大门口遇到王爷爷",
                         dialogue: [
                             { speaker: "你", text: "您好，请问是王德顺先生吗？" },
-                            { speaker: "王爷爷", text: "是啊，你是小林吧。来参观四合院的吧？过来歇口气。" },
+                            { speaker: "王爷爷", voice: "/vocal/1/是啊你是小林吧.mp3", text: "是啊，你是小林吧。来参观四合院的吧？过来歇口气。" },
                             { speaker: "你", text: "是，我替我妈来看看您。" },
-                            { speaker: "王爷爷", text: "哦.....小梅啊，好久都没有见到她了，她小时候老在这院子里跑。这是'静心院'，已经有一百多年了，我们家三代人都在这儿住，除了你妈。以前真热闹，现在清静多了..." },
+                            { speaker: "王爷爷", voice: "/vocal/1/小梅啊好久都.mp3", text: "哦.....小梅啊，好久都没有见到她了，她小时候老在这院子里跑。这是'静心院'，已经有一百多年了，我们家三代人都在这儿住，除了你妈。以前真热闹，现在清静多了..." },
                             { speaker: "你", text: "我能进去看看吗？" },
-                            { speaker: "王爷爷", text: "当然，你先进去吧，大门就在右边，别被门槛绊着了。" }
+                            { speaker: "王爷爷", voice: "/vocal/1/当然你先进去.mp3", text: "当然，你先进去吧，大门就在右边，别被门槛绊着了。" }
                         ]
                     }
                 ]
@@ -105,7 +105,7 @@ export function getStoryData(locale) {
 export function getShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "去吧孩子，右边就是大门。" }
+            { speaker: "王爷爷", voice: "/vocal/1/去吧孩子.mp3", text: "去吧孩子，右边就是大门。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "Go ahead, the main entrance is on the right." }
@@ -118,7 +118,7 @@ export function getShortDialogue(locale) {
 export function getFamilyBookShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "东厢房还锁着呢？去石榴树下找找钥匙吧，你奶奶就爱把东西藏那儿。" }
+            { speaker: "王爷爷", voice: "/vocal/1/东厢房还锁着.mp3", text: "东厢房还锁着呢？去石榴树下找找钥匙吧，你奶奶就爱把东西藏那儿。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "East Wing still locked? Check under the pomegranate tree for the key. Your grandmother always loved hiding things there." }
@@ -131,7 +131,7 @@ export function getFamilyBookShortDialogue(locale) {
 export function getFamilyPhotoShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "去西厢房看看吧，墨锭和别的东西都在那边。" }
+            { speaker: "王爷爷", voice: "/vocal/1/去西厢房看看.mp3", text: "去西厢房看看吧，墨锭和别的东西都在那边。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "Go check the West Wing. The ink stick and other things are there." }
@@ -144,15 +144,15 @@ export function getFamilyPhotoShortDialogue(locale) {
 export function getPostEndingDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "石榴甜吗？", expression: "笑" },
+            { speaker: "王爷爷", voice: "/vocal/1/石榴甜吗.mp3", text: "石榴甜吗？", expression: "笑" },
             { speaker: "你", text: "甜。汁水很足，就是籽儿有点多。" },
-            { speaker: "王爷爷", text: "吃石榴，籽多是好事。多子多福，老一辈都这么说。" },
+            { speaker: "王爷爷", voice: "/vocal/1/吃石榴.mp3", text: "吃石榴，籽多是好事。多子多福，老一辈都这么说。" },
             { speaker: "你", text: "王爷爷，院子里的故事我都看完了。那张照片，我拼上了。" },
-            { speaker: "王爷爷", text: "嗯。老三那页，也补上了。", expression: "眼睛有些湿润" },
-            { speaker: "王爷爷", text: "人这一辈子啊，争争吵吵，到最后，还是放不下。" },
+            { speaker: "王爷爷", voice: "/vocal/1/嗯老三那页.mp3", text: "嗯。老三那页，也补上了。", expression: "眼睛有些湿润" },
+            { speaker: "王爷爷", voice: "/vocal/1/人这一辈子啊.mp3", text: "人这一辈子啊，争争吵吵，到最后，还是放不下。" },
             { speaker: "你", text: "他会回来的。" },
-            { speaker: "王爷爷", text: "也许吧。这院子，我给他留着。" },
-            { speaker: "王爷爷", text: "孩子，有空常来坐坐。" },
+            { speaker: "王爷爷", voice: "/vocal/1/也许吧.mp3", text: "也许吧。这院子，我给他留着。" },
+            { speaker: "王爷爷", voice: "/vocal/1/孩子.mp3", text: "孩子，有空常来坐坐。" },
         ],
         en: [
             { speaker: "Grandpa Wang", text: "Were the pomegranates sweet?", expression: "smiling" },
@@ -173,7 +173,7 @@ export function getPostEndingDialogue(locale) {
 export function getPhotoPieceShortDialogue(locale) {
     const shortDialogues = {
         zh: [
-            { speaker: "王爷爷", text: "去摘点石榴吧，带回去。" }
+            { speaker: "王爷爷", voice: "/vocal/1/去摘点石榴吧.mp3", text: "去摘点石榴吧，带回去。" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "Go pick some pomegranates and take them home." }
@@ -187,8 +187,8 @@ export function getChuihuaDialogue(locale) {
     const dialogues = {
         zh: [
             { speaker: "你", text: "这么大的院子，一定有很多人住吧。" },
-            { speaker: "王爷爷", text: "现在就剩我和我老伴了。半年？一年？记不清了。忙，都忙。我有两个儿子一个女儿，都跑出去了，剩我俩在这院子里。" },
-            { speaker: "王爷爷", text: "这院子以前热闹。我爹在的时候，一大家子十几口人。后来孩子们一个个飞走了，就剩我一个。人老了，脑子也锈了，以前的事...像隔着毛玻璃，看得见，摸不着。" }
+            { speaker: "王爷爷", voice: "/vocal/1/现在就剩我和我老.mp3", text: "现在就剩我和我老伴了。半年？一年？记不清了。忙，都忙。我有两个儿子一个女儿，都跑出去了，剩我俩在这院子里。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这院子以前热闹.mp3", text: "这院子以前热闹。我爹在的时候，一大家子十几口人。后来孩子们一个个飞走了，就剩我一个。人老了，脑子也锈了，以前的事...像隔着毛玻璃，看得见，摸不着。" }
         ],
         en: [
             { speaker: "You", text: "Such a big courtyard, there must be many people living here." },
@@ -204,40 +204,40 @@ export function getFamilyBookDialogue(locale) {
     const dialogues = {
         zh: [
             { speaker: "你", text: "王爷爷，这是什么？" },
-            { speaker: "王爷爷", text: "这是我们家的家谱。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这是我们家的家谱.mp3", text: "这是我们家的家谱。" },
             { speaker: "你", text: "这么厚啊。" },
-            { speaker: "王爷爷", text: "厚是厚。纸比人还多。", expression: "笑" },
+            { speaker: "王爷爷", voice: "/vocal/1/厚是厚.mp3", text: "厚是厚。纸比人还多。", expression: "笑" },
             { speaker: "你", text: "字写得真工整。" },
-            { speaker: "王爷爷", text: "以前都是毛笔写的。我爹写一页，要磨半天墨。" },
+            { speaker: "王爷爷", voice: "/vocal/1/以前都是毛笔写的.mp3", text: "以前都是毛笔写的。我爹写一页，要磨半天墨。" },
             { speaker: "你", text: "您也写过吗？" },
-            { speaker: "王爷爷", text: "写过。年轻的时候记得清楚。谁是第几代，谁娶了谁，谁脾气倔，谁偷着吃糖被罚站。" },
+            { speaker: "王爷爷", voice: "/vocal/1/写过年轻的.mp3", text: "写过。年轻的时候记得清楚。谁是第几代，谁娶了谁，谁脾气倔，谁偷着吃糖被罚站。" },
             { speaker: "你", text: "连这个都记得。", expression: "笑" },
-            { speaker: "王爷爷", text: "那会儿记得清。现在不行了，有时候翻到名字，得想一会儿——'这是谁来着？'想半天，忽然又想起来：哦，是那个老爱爬树的。" },
+            { speaker: "王爷爷", voice: "/vocal/1/那会儿记得清.mp3", text: "那会儿记得清。现在不行了，有时候翻到名字，得想一会儿——'这是谁来着？'想半天，忽然又想起来：哦，是那个老爱爬树的。" },
             { speaker: "你", text: "那这儿怎么空着？" },
-            { speaker: "王爷爷", text: "这是老三的位置。", expression: "手停住" },
+            { speaker: "王爷爷", voice: "/vocal/1/这是老三的位置.mp3", text: "这是老三的位置。", expression: "手停住" },
             { speaker: "你", text: "怎么会空着？" },
-            { speaker: "王爷爷", text: "以前吵架。他说别写，我也气。我说'不写就不写'，就真空了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/以前吵架.mp3", text: "以前吵架。他说别写，我也气。我说'不写就不写'，就真空了。" },
             { speaker: "你", text: "就因为一场架？" },
-            { speaker: "王爷爷", text: "人年轻的时候，觉得吵赢了就算赢了。后来才知道，赢了嘴，输了人。" },
+            { speaker: "王爷爷", voice: "/vocal/1/人年轻的时候.mp3", text: "人年轻的时候，觉得吵赢了就算赢了。后来才知道，赢了嘴，输了人。" },
             { speaker: "你", text: "他后来回来过吗？" },
-            { speaker: "王爷爷", text: "回来过一次。站在门口，没进来。" },
+            { speaker: "王爷爷", voice: "/vocal/1/回来过一次.mp3", text: "回来过一次。站在门口，没进来。" },
             { speaker: "你", text: "您看见了？" },
-            { speaker: "王爷爷", text: "这院子小，站门口都听得见呼吸。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这院子小.mp3", text: "这院子小，站门口都听得见呼吸。" },
             { speaker: "你", text: "那您当时……没叫他吗？" },
-            { speaker: "王爷爷", text: "当时我觉得，他要是真想进，自然会进。现在想想，我要是叫一声……也许就不一样。" },
+            { speaker: "王爷爷", voice: "/vocal/1/当时我觉得.mp3", text: "当时我觉得，他要是真想进，自然会进。现在想想，我要是叫一声……也许就不一样。" },
             { speaker: "你", text: "那现在呢？还能补上吗？", expression: "轻声" },
-            { speaker: "王爷爷", text: "这页空着，总觉得风从这儿漏进来。", expression: "翻了两页又翻回来" },
+            { speaker: "王爷爷", voice: "/vocal/1/这页空着.mp3", text: "这页空着，总觉得风从这儿漏进来。", expression: "翻了两页又翻回来" },
             { speaker: "你", text: "写上吧。" },
-            { speaker: "王爷爷", text: "你觉得该写吗？" },
+            { speaker: "王爷爷", voice: "/vocal/1/你觉得改写吗.mp3", text: "你觉得该写吗？" },
             { speaker: "你", text: "院子不是用来赌气的。" },
-            { speaker: "王爷爷", text: "写上……得磨墨啊。", expression: "长叹一口气" },
+            { speaker: "王爷爷", voice: "/vocal/1/写上得.mp3", text: "写上……得磨墨啊。", expression: "长叹一口气" },
             { speaker: "你", text: "墨不是在这儿吗？" },
-            { speaker: "王爷爷", text: "这砚台是空的。那块老墨，我好像收起来了。还有毛笔，也不知散在哪里了。" },
-            { speaker: "王爷爷", text: "你帮我找找吧，一支旧毛笔，还有一块黑漆漆的墨锭。没有它们，这字写不下去。" },
-            { speaker: "王爷爷", text: "毛笔应该在你三舅的东厢房里。不过那间房让你奶奶锁了好多年了，钥匙我记得她藏在石榴树底下。你先去石榴树下找找钥匙吧。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这砚台是.mp3", text: "这砚台是空的。那块老墨，我好像收起来了。还有毛笔，也不知散在哪里了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/你帮我找找吧.mp3", text: "你帮我找找吧，一支旧毛笔，还有一块黑漆漆的墨锭。没有它们，这字写不下去。" },
+            { speaker: "王爷爷", voice: "/vocal/1/毛笔应该在.mp3", text: "毛笔应该在你三舅的东厢房里。不过那间房让你奶奶锁了好多年了，钥匙我记得她藏在石榴树底下。你先去石榴树下找找钥匙吧。" },
             { speaker: "你", text: "好，我去石榴树那边找找。" },
             { speaker: "你", text: "对了，那墨锭呢？" },
-            { speaker: "王爷爷", text: "墨锭在西厢房，那间没锁。你先把毛笔和钥匙找着再说。" },
+            { speaker: "王爷爷", voice: "/vocal/1/墨锭在.mp3", text: "墨锭在西厢房，那间没锁。你先把毛笔和钥匙找着再说。" },
             { speaker: "你", text: "好，那我先去东厢房。" }
         ],
         en: [
@@ -285,14 +285,14 @@ export function getFamilyBookDialogue(locale) {
 export function getFamilyPhotoDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "这支毛笔……有些年头了。" },
-            { speaker: "王爷爷", text: "笔杆上还有旧墨迹。老三小时候练字，用的就是这支。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这只毛笔.mp3", text: "这支毛笔……有些年头了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/笔杆上.mp3", text: "笔杆上还有旧墨迹。老三小时候练字，用的就是这支。" },
             { speaker: "你", text: "他字写得好吗？" },
-            { speaker: "王爷爷", text: "好。比我好。笔画工整，有耐心的时候能写一整篇。" },
-            { speaker: "王爷爷", text: "就是不爱磨墨。磨两下就喊手酸，每次都要我催。" },
+            { speaker: "王爷爷", voice: "/vocal/1/好比我好.mp3", text: "好。比我好。笔画工整，有耐心的时候能写一整篇。" },
+            { speaker: "王爷爷", voice: "/vocal/1/就是不爱.mp3", text: "就是不爱磨墨。磨两下就喊手酸，每次都要我催。" },
             { speaker: "你", text: "后来您催不动了？" },
-            { speaker: "王爷爷", text: "后来他长大了，也不用我催了。" },
-            { speaker: "王爷爷", text: "墨锭还在西厢房。那是块好墨，松烟制的。你去拿来，这笔才能用。" },
+            { speaker: "王爷爷", voice: "/vocal/1/后来他长大.mp3", text: "后来他长大了，也不用我催了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/墨锭还在西厢房.mp3", text: "墨锭还在西厢房。那是块好墨，松烟制的。你去拿来，这笔才能用。" },
             { speaker: "你", text: "好，我去找找。" }
         ],
         en: [
@@ -314,16 +314,16 @@ export function getFamilyPhotoDialogue(locale) {
 export function getInkStickDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "哎，是这块。松烟墨。", expression: "接过墨锭，用手指摩挲" },
-            { speaker: "王爷爷", text: "这墨写出来偏冷，泛青。好墨，就是得慢慢磨。" },
+            { speaker: "王爷爷", voice: "/vocal/1/哎是这块.mp3", text: "哎，是这块。松烟墨。", expression: "接过墨锭，用手指摩挲" },
+            { speaker: "王爷爷", voice: "/vocal/1/这墨写出来偏冷.mp3", text: "这墨写出来偏冷，泛青。好墨，就是得慢慢磨。" },
             { speaker: "你", text: "磨墨很费工夫吗？" },
-            { speaker: "王爷爷", text: "急不得。水多了淡，水少了涩。心浮气躁，磨出来的墨也不匀。" },
-            { speaker: "王爷爷", text: "老三就是坐不住。磨两下就喊累，说用瓶装墨汁不就行了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/急不得.mp3", text: "急不得。水多了淡，水少了涩。心浮气躁，磨出来的墨也不匀。" },
+            { speaker: "王爷爷", voice: "/vocal/1/老三就是坐不住.mp3", text: "老三就是坐不住。磨两下就喊累，说用瓶装墨汁不就行了。" },
             { speaker: "你", text: "那您怎么说？" },
-            { speaker: "王爷爷", text: "我说，磨墨磨的不是墨，是性子。急了写不出好字。" },
-            { speaker: "王爷爷", text: "他嘴上不服，后来……倒也听进去了。就是不知道现在还练不练字。" },
+            { speaker: "王爷爷", voice: "/vocal/1/我说磨墨磨.mp3", text: "我说，磨墨磨的不是墨，是性子。急了写不出好字。" },
+            { speaker: "王爷爷", voice: "/vocal/1/他嘴上不服.mp3", text: "他嘴上不服，后来……倒也听进去了。就是不知道现在还练不练字。" },
             { speaker: "你", text: "书桌上那块撕下来的照片……", expression: "望向书桌的方向" },
-            { speaker: "王爷爷", text: "嗯。那个不急。先把东西找齐。毛笔在东厢房，以前那儿是书房。", expression: "摆摆手，没有多提" },
+            { speaker: "王爷爷", voice: "/vocal/1/嗯那个不急.mp3", text: "嗯。那个不急。先把东西找齐。毛笔在东厢房，以前那儿是书房。", expression: "摆摆手，没有多提" },
             { speaker: "你", text: "好，我这就去。" }
         ],
         en: [
@@ -347,24 +347,24 @@ export function getInkStickDialogue(locale) {
 export function getDeepTalkDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "笔也找到了，墨也找到了。好……好。", expression: "看着桌上的毛笔和墨锭，点了点头" },
-            { speaker: "王爷爷", text: "这笔，这笔上刻的是你妈妈的名字。她出生那天，我特意刻上去的。那时候觉得，名字刻在笔上，人就忘不了根。" },
+            { speaker: "王爷爷", voice: "/vocal/1/笔也找到了.mp3", text: "笔也找到了，墨也找到了。好……好。", expression: "看着桌上的毛笔和墨锭，点了点头" },
+            { speaker: "王爷爷", voice: "/vocal/1/这笔这笔.mp3", text: "这笔，这笔上刻的是你妈妈的名字。她出生那天，我特意刻上去的。那时候觉得，名字刻在笔上，人就忘不了根。" },
             { speaker: "你", text: "她很少提这些。" },
-            { speaker: "王爷爷", text: "不提不打紧。东西在，记性就在。" },
-            { speaker: "王爷爷", text: "这墨也是你三舅挑的。他拿着零花钱跑了三家店，说这块最黑。其实小孩子哪懂墨的好坏，但那份心意比什么都好。" },
+            { speaker: "王爷爷", voice: "/vocal/1/不提不打紧.mp3", text: "不提不打紧。东西在，记性就在。" },
+            { speaker: "王爷爷", voice: "/vocal/1/这墨也是你三舅挑的.mp3", text: "这墨也是你三舅挑的。他拿着零花钱跑了三家店，说这块最黑。其实小孩子哪懂墨的好坏，但那份心意比什么都好。" },
             { speaker: "你", text: "他那时候多大？" },
-            { speaker: "王爷爷", text: "十一二岁。比你还小。那时候他最黏我，写字要挨着，看书要挨着。后来……后来就不挨了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/十一二岁.mp3", text: "十一二岁。比你还小。那时候他最黏我，写字要挨着，看书要挨着。后来……后来就不挨了。" },
             { speaker: "你", text: "是因为卖院子的事吗？", expression: "轻声" },
-            { speaker: "王爷爷", text: "那天他站在院子里，跟我说换楼房、住电梯房。我一听就炸了。不是气他说要卖——是气他不懂，这个院子对他意味着什么。", expression: "声音沉下去" },
-            { speaker: "王爷爷", text: "我一把扯过桌上的全家福，撕了他那一角。我说，你既然不想回来，那这张照片上也不必留你了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/那天他站在院子里.mp3", text: "那天他站在院子里，跟我说换楼房、住电梯房。我一听就炸了。不是气他说要卖——是气他不懂，这个院子对他意味着什么。", expression: "声音沉下去" },
+            { speaker: "王爷爷", voice: "/vocal/1/我一把扯过桌上的全家福.mp3", text: "我一把扯过桌上的全家福，撕了他那一角。我说，你既然不想回来，那这张照片上也不必留你了。" },
             { speaker: "你", text: "您后悔说这句话吗？" },
-            { speaker: "王爷爷", text: "后悔。后悔了一万遍。但话出了口，就像撕了角的照片——你明知道缺一块，就是补不回来。" },
+            { speaker: "王爷爷", voice: "/vocal/1/后悔.mp3", text: "后悔。后悔了一万遍。但话出了口，就像撕了角的照片——你明知道缺一块，就是补不回来。" },
             { speaker: "", text: "（王爷爷拿起墨锭，慢慢转了一圈。）" },
-            { speaker: "王爷爷", text: "笔要蘸墨才能写字。人也一样，得有个东西牵着，才走不远。" },
+            { speaker: "王爷爷", voice: "/vocal/1/笔要蘸墨才能写字.mp3", text: "笔要蘸墨才能写字。人也一样，得有个东西牵着，才走不远。" },
             { speaker: "你", text: "那这张照片呢？", expression: "拿出那片撕下来的照片一角" },
-            { speaker: "王爷爷", text: "……你找到了？在西厢房？", expression: "愣了一下" },
+            { speaker: "王爷爷", voice: "/vocal/1/你找到了.mp3", text: "……你找到了？在西厢房？", expression: "愣了一下" },
             { speaker: "你", text: "嗯。就在书桌旁边。" },
-            { speaker: "王爷爷", text: "好。东西齐了。照片、笔、墨……都在这儿了。来，把它拼回去。", expression: "把全家福从抽屉里拿出来，放在桌上" }
+            { speaker: "王爷爷", voice: "/vocal/1/好东西齐了.mp3", text: "好。东西齐了。照片、笔、墨……都在这儿了。来，把它拼回去。", expression: "把全家福从抽屉里拿出来，放在桌上" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "The brush, found. The ink, found too. Good... good.", expression: "looking at the brush and ink stick on the table, nodding" },
@@ -394,23 +394,23 @@ export function getDeepTalkDialogue(locale) {
 export function getPhotoPieceDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "……还在啊。人老了，连生气都没当年那么大声。", expression: "苦笑" },
-            { speaker: "王爷爷", text: "那天他站在这儿，跟我说，'爸，院子太旧了，卖了换套楼房，您和妈住电梯房。'" },
+            { speaker: "王爷爷", voice: "/vocal/1/还在啊.mp3", text: "……还在啊。人老了，连生气都没当年那么大声。", expression: "苦笑" },
+            { speaker: "王爷爷", voice: "/vocal/1/那天他站在这儿.mp3", text: "那天他站在这儿，跟我说，'爸，院子太旧了，卖了换套楼房，您和妈住电梯房。'" },
             { speaker: "你", text: "听起来……也不是坏事。" },
-            { speaker: "王爷爷", text: "是啊，不是坏事。可我当时就觉得，他是要把根拔了。这座院子承载着我太多回忆了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/是啊，不是坏事.mp3", text: "是啊，不是坏事。可我当时就觉得，他是要把根拔了。这座院子承载着我太多回忆了。" },
             { speaker: "你", text: "后面卖了吗？" },
-            { speaker: "王爷爷", text: "肯定没卖。他比我倔。吵完架，走了。嘴上硬，心也硬。" },
+            { speaker: "王爷爷", voice: "/vocal/1/肯定没卖.mp3", text: "肯定没卖。他比我倔。吵完架，走了。嘴上硬，心也硬。" },
             { speaker: "你", text: "您后来找过他吗？" },
-            { speaker: "王爷爷", text: "我守着院子，他守着脸面。谁也没低头。" },
-            { speaker: "王爷爷", text: "你妈……还跟他聊天吗？" },
+            { speaker: "王爷爷", voice: "/vocal/1/我守着院子.mp3", text: "我守着院子，他守着脸面。谁也没低头。" },
+            { speaker: "王爷爷", voice: "/vocal/1/你妈还跟他.mp3", text: "你妈……还跟他聊天吗？" },
             { speaker: "你", text: "说。他说石榴树每年都该结果。" },
-            { speaker: "王爷爷", text: "他还记得这些啊...." },
+            { speaker: "王爷爷", voice: "/vocal/1/他还记得这些啊.mp3", text: "他还记得这些啊...." },
             { speaker: "你", text: "记得。他只是没说要回来。" },
-            { speaker: "王爷爷", text: "那你这次回来，是替你妈来的……还是替他来的？" },
+            { speaker: "王爷爷", voice: "/vocal/1/那你这次回来.mp3", text: "那你这次回来，是替你妈来的……还是替他来的？" },
             { speaker: "你", text: "都不是。" },
             { speaker: "你", text: "是替缺的那一块来的。" },
             { speaker: "", text: "（风吹过院子，石榴树叶轻响。）" },
-            { speaker: "王爷爷", text: "这一角我留了这么多年……来，我眼花了手也抖，你来把它拼回去。", expression: "从抽屉里拿出照片和碎片，放在桌上" }
+            { speaker: "王爷爷", voice: "/vocal/1/这一角我留了这么多年.mp3", text: "这一角我留了这么多年……来，我眼花了手也抖，你来把它拼回去。", expression: "从抽屉里拿出照片和碎片，放在桌上" }
         ],
         en: [
             { speaker: "Grandpa Wang", text: "...It's still here. When you get old, even anger isn't as loud as it used to be.", expression: "wry smile" },
@@ -440,11 +440,11 @@ export function getPhotoPieceDialogue(locale) {
 export function getPhotoPieceDialoguePart2a(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "（看着你拼好的照片，手指轻轻划过那道裂痕。）接上了。裂痕清清楚楚，但人回到了原位。", expression: "目光久久停在照片上" },
-            { speaker: "王爷爷", text: "原来……一直都在。" },
-            { speaker: "王爷爷", text: "照片补上了，名字也该补上。" },
+            { speaker: "王爷爷", voice: "/vocal/1/接上了.mp3", text: "（看着你拼好的照片，手指轻轻划过那道裂痕。）接上了。裂痕清清楚楚，但人回到了原位。", expression: "目光久久停在照片上" },
+            { speaker: "王爷爷", voice: "/vocal/1/原来一直都在.mp3", text: "原来……一直都在。" },
+            { speaker: "王爷爷", voice: "/vocal/1/照片补上了.mp3", text: "照片补上了，名字也该补上。" },
             { speaker: "你", text: "您还记得怎么写吗？" },
-            { speaker: "王爷爷", text: "记得。是我给他起的。", expression: "淡淡一笑" },
+            { speaker: "王爷爷", voice: "/vocal/1/记得.mp3", text: "记得。是我给他起的。", expression: "淡淡一笑" },
             { speaker: "你", text: "我帮您磨墨吧。" },
         ],
         en: [
@@ -463,10 +463,10 @@ export function getPhotoPieceDialoguePart2a(locale) {
 export function getPhotoPieceDialoguePart2b(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "你这墨磨得匀。老三小时候没这个耐心，磨两圈就跑出去玩，墨色总是不对。", expression: "看着砚台里的墨，微微点头" },
+            { speaker: "王爷爷", voice: "/vocal/1/你这墨磨得匀.mp3", text: "你这墨磨得匀。老三小时候没这个耐心，磨两圈就跑出去玩，墨色总是不对。", expression: "看着砚台里的墨，微微点头" },
             { speaker: "", text: "（你看着王爷爷用笔尖沾满墨汁）" },
-            { speaker: "王爷爷", text: "写上了，这下不算少人了。门一直开着，就等他们回来吧。" },
-            { speaker: "王爷爷", text: "今年石榴成熟的早，要不要摘几个？" },
+            { speaker: "王爷爷", voice: "/vocal/1/写上了这下.mp3", text: "写上了，这下不算少人了。门一直开着，就等他们回来吧。" },
+            { speaker: "王爷爷", voice: "/vocal/1/今年石榴成熟的早.mp3", text: "今年石榴成熟的早，要不要摘几个？" },
             { speaker: "你", text: "好，别等它们自己落了。" }
         ],
         en: [
@@ -484,33 +484,33 @@ export function getPhotoPieceDialoguePart2b(locale) {
 export function getPomegranateShareDialogue(locale) {
     const dialogues = {
         zh: [
-            { speaker: "王爷爷", text: "摘了几个？" },
+            { speaker: "王爷爷", voice: "/vocal/1/摘了几个.mp3", text: "摘了几个？" },
             { speaker: "你", text: "摘了四个，够吗？" },
-            { speaker: "王爷爷", text: "够。留几个在树上，鸟儿也得吃。" },
+            { speaker: "王爷爷", voice: "/vocal/1/够留几个.mp3", text: "够。留几个在树上，鸟儿也得吃。" },
             { speaker: "", text: "（交互提示：把石榴递给王爷爷）" },
-            { speaker: "王爷爷", text: "这个给你妈带回去。这个……留给老大，他爱吃酸的。这个给老二，她小时候总偷青的吃，酸得皱眉头。这个……" },
+            { speaker: "王爷爷", voice: "/vocal/1/这个给你妈带回去.mp3", text: "这个给你妈带回去。这个……留给老大，他爱吃酸的。这个给老二，她小时候总偷青的吃，酸得皱眉头。这个……" },
             { speaker: "", text: "（他停住了，看着最后一个石榴。）" },
             { speaker: "你", text: "这个给三舅？" },
             { speaker: "", text: "王爷爷没说话，把那个石榴放在旁边的空马扎上。" },
             { speaker: "", text: "风吹过，石榴树叶沙沙响。" },
-            { speaker: "王爷爷", text: "今年结得多。他要是回来，还能赶上。" },
+            { speaker: "王爷爷", voice: "/vocal/1/今年结得多.mp3", text: "今年结得多。他要是回来，还能赶上。" },
             { speaker: "", text: "（你站在那儿，看着那个空马扎上的石榴。）" },
             { speaker: "你", text: "会回来的。" },
             { speaker: "", text: "（王爷爷抬头看你。）" },
-            { speaker: "王爷爷", text: "你怎么知道？" },
+            { speaker: "王爷爷", voice: "/vocal/1/你怎么知道.mp3", text: "你怎么知道？" },
             { speaker: "你", text: "您门不是一直开着吗。" },
             { speaker: "", text: "（王爷爷愣了一下，然后笑了，笑得眼眶有点红。）" },
-            { speaker: "王爷爷", text: "走吧，天不早了。" },
+            { speaker: "王爷爷", voice: "/vocal/1/走吧天不早了.mp3", text: "走吧，天不早了。" },
             { speaker: "你", text: "嗯。我走了。" },
             { speaker: "", text: "（你走到院门口，回头看了一眼。）" },
             { speaker: "", text: "王爷爷还坐在那儿，手里捧着那本家谱。那个石榴静静躺在空马扎上，红得像一盏小灯笼。" },
-            { speaker: "王爷爷", text: "走吧，忙你的去。别学我儿子们，飞走了就不回头...（笑）开玩笑的。年轻人，该飞就飞。" },
+            { speaker: "王爷爷", voice: "/vocal/1/走吧忙你的去.mp3", text: "走吧，忙你的去。别学我儿子们，飞走了就不回头...（笑）开玩笑的。年轻人，该飞就飞。" },
             { speaker: "你", text: "我会再来的。" },
             { speaker: "你", text: "（掏出手机，对着补好的全家福拍了张照）发给三舅吧。照片补上了，他该看看。" },
-            { speaker: "王爷爷", text: "（沉默片刻，点了点头）……发吧。" },
+            { speaker: "王爷爷", voice: "/vocal/1/发吧.mp3", text: "（沉默片刻，点了点头）……发吧。" },
             { speaker: "", text: "（你按下发送键。照片穿过屏幕，飞向不知道哪座城市。）" },
-            { speaker: "王爷爷", text: "回去跟你妈说，石榴还结着，有空也回来看看。" },
-            { speaker: "王爷爷", text: "（摆手）来不来都行。记得石榴熟的时候，回来尝一口。" },
+            { speaker: "王爷爷", voice: "/vocal/1/回去跟你妈说.mp3", text: "回去跟你妈说，石榴还结着，有空也回来看看。" },
+            { speaker: "王爷爷", voice: "/vocal/1/来不来都行.mp3", text: "（摆手）来不来都行。记得石榴熟的时候，回来尝一口。" },
         ],
         en: [
             { speaker: "Grandpa Wang", text: "How many did you pick?" },
