@@ -166,6 +166,9 @@ export class VolumetricLightPass extends Pass {
 
     this.fsQuad = new FullScreenQuad();
 
+    // 预创建合成输出材质，避免每帧 new Material 造成 GC 抖动
+    this.copyMaterial = new THREE.MeshBasicMaterial();
+
     this.updateParams();
   }
 
@@ -252,19 +255,20 @@ export class VolumetricLightPass extends Pass {
       renderer.setRenderTarget(writeBuffer);
     }
 
-    // 使用CopyShader或直接绘制
-    this.fsQuad.material = new THREE.MeshBasicMaterial({
-      map: this.renderTargetComposite.texture
-    });
+    // 复用预创建的材质，只更新 map 引用
+    this.copyMaterial.map = this.renderTargetComposite.texture;
+    this.fsQuad.material = this.copyMaterial;
     this.fsQuad.render(renderer);
   }
 
   dispose() {
     this.renderTargetBright.dispose();
     this.renderTargetGodRays.dispose();
+    if (this.renderTargetComposite) this.renderTargetComposite.dispose();
     this.highPassMaterial.dispose();
     this.godRaysMaterial.dispose();
     this.compositeMaterial.dispose();
+    this.copyMaterial.dispose();
   }
 }
 
