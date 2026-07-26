@@ -172,6 +172,13 @@
             <label>{{ t('maxFPS') }} {{ targetFPS }}</label>
             <input type="range" v-model.number="targetFPS" min="15" max="90" step="5" />
           </div>
+          <div class="settings-group settings-row">
+            <label>{{ locale === 'zh' ? '环境光遮蔽 (GTAO)' : 'Ambient Occlusion (GTAO)' }}</label>
+            <select v-model="gtaoPreset" class="lang-btn" style="padding: 4px 10px;">
+              <option value="quality">{{ locale === 'zh' ? '画质优先' : 'Quality' }}</option>
+              <option value="performance">{{ locale === 'zh' ? '性能优先' : 'Performance' }}</option>
+            </select>
+          </div>
           <button class="back-btn" @click="settingsCategory = null">{{ t('back') }}</button>
         </div>
 
@@ -406,6 +413,7 @@ export default {
       oldmanInteractDistance: 3.0,
       verticalVelocity: 0,
       isGrounded: false,
+      walkTime: 0, // 视角摇晃计时器
       groundedGraceTime: 0,
       flyMode: false, // 飞行模式开关
       // 太阳位置：约 9～10 点早晨光（偏东、较低角度）
@@ -426,6 +434,7 @@ export default {
       bloomStrength: 0.2,
       toneMappingExposure: 1.25  ,
       targetFPS: 90, // 目标帧率
+      gtaoPreset: 'quality', // GTAO 预设: 'quality' | 'performance'
       sunTime: 10, // 太阳时间 9~18点
       // 时间系统
       gameTime: 10.5, // 游戏内时间（默认10:30）
@@ -617,6 +626,10 @@ export default {
       if (this.gtaoManager) {
         this.gtaoManager.setEnabled(v);
       }
+    },
+    // GTAO 预设切换
+    gtaoPreset(v) {
+      this.applyGtaoPreset(v);
     }
   },
   mounted() {
@@ -869,16 +882,14 @@ export default {
       // 预创建复用对象
       const moveDir = new THREE.Vector3();
       const finalDir = new THREE.Vector3();
-      const clock = new THREE.Clock();
       const stairStepHeight = 0.5;
       const stairStepTolerance = 0.04;
-      const stairSnapDistance = stairStepHeight + 0.08;
       const stairCameraSmooth = 14;
       const cameraEyeHeight = 1.2;
       let smoothedCameraY = null;
 
-      // 帧率限制
-      let lastFrameTime = 0;
+      // 帧率限制：基于实际处理帧的时间差计算 delta，避免跳帧导致的步长不均匀
+      let lastProcessedTime = 0;
       const getFrameInterval = () => 1000 / this.targetFPS;
 
       // 加载模型
@@ -887,6 +898,7 @@ export default {
       // 使用本地 Draco 解码器，避免网络超时问题
       dracoLoader.setDecoderPath('/draco/');
       loader.setDRACOLoader(dracoLoader);
+      loader.setMeshoptDecoder(MeshoptDecoder);
 
       // 通用模型优化函数：启用视锥体裁剪和静态优化
       const optimizeModel = (model, isStatic = true) => {
@@ -908,9 +920,7 @@ export default {
 
       // 加载引导箭头模型
       const loadGuidance = () => {
-        const guidanceLoader = new GLTFLoader();
-        guidanceLoader.setDRACOLoader(dracoLoader);
-        guidanceLoader.load(
+        loader.load(
           '/models/guidance.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -934,9 +944,7 @@ export default {
 
       // 加载第二个引导箭头模型
       const loadArrow2 = () => {
-        const arrow2Loader = new GLTFLoader();
-        arrow2Loader.setDRACOLoader(dracoLoader);
-        arrow2Loader.load(
+        loader.load(
           '/models/guidance.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -960,9 +968,7 @@ export default {
 
       // 加载screenwall模型
       const loadScreenWall = () => {
-        const screenWallLoader = new GLTFLoader();
-        screenWallLoader.setDRACOLoader(dracoLoader);
-        screenWallLoader.load(
+        loader.load(
           '/models/screenwall.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -984,9 +990,7 @@ export default {
       };
 
       const loadFan = () => {
-        const fanLoader = new GLTFLoader();
-        fanLoader.setDRACOLoader(dracoLoader);
-        fanLoader.load(
+        loader.load(
           '/models/Fan.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1007,9 +1011,7 @@ export default {
       };
 
       const loadDiqi = () => {
-        const diqiLoader = new GLTFLoader();
-        diqiLoader.setDRACOLoader(dracoLoader);
-        diqiLoader.load(
+        loader.load(
           '/models/Diqi.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1029,9 +1031,7 @@ export default {
       };
 
       const loadJianzi = () => {
-        const jianziLoader = new GLTFLoader();
-        jianziLoader.setDRACOLoader(dracoLoader);
-        jianziLoader.load(
+        loader.load(
           '/models/Jianzi.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1053,9 +1053,7 @@ export default {
 
       // 加载王氏家谱模型
       const loadFamilyBook = () => {
-        const bookLoader = new GLTFLoader();
-        bookLoader.setDRACOLoader(dracoLoader);
-        bookLoader.load(
+        loader.load(
           '/models/Book.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1085,9 +1083,7 @@ export default {
       // 加载钢笔模型
       // 加载毛笔模型
       const loadBrush = () => {
-        const brushLoader = new GLTFLoader();
-        brushLoader.setDRACOLoader(dracoLoader);
-        brushLoader.load(
+        loader.load(
           '/models/maobi.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1116,9 +1112,7 @@ export default {
 
       // 加载墨锭模型
       const loadInkStick = () => {
-        const inkLoader = new GLTFLoader();
-        inkLoader.setDRACOLoader(dracoLoader);
-        inkLoader.load(
+        loader.load(
           '/models/moding.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1147,9 +1141,7 @@ export default {
 
       // 加载全家福模型
       const loadFamilyPhoto = () => {
-        const photoLoader = new GLTFLoader();
-        photoLoader.setDRACOLoader(dracoLoader);
-        photoLoader.load(
+        loader.load(
           '/models/family.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1210,9 +1202,7 @@ export default {
 
       // 加载所有箭头模型（复用同一个素材）
       const loadAllArrows = () => {
-        const arrowLoader = new GLTFLoader();
-        arrowLoader.setDRACOLoader(dracoLoader);
-        arrowLoader.load(
+        loader.load(
           '/models/guidance.glb',
           (gltf) => {
             // 创建箭头实例的辅助函数
@@ -1272,10 +1262,7 @@ export default {
 
       // 加载老人 GLB 模型（在四合院场景加载完成后执行）
       const loadOldman = () => {
-        const oldmanLoader = new GLTFLoader();
-        oldmanLoader.setDRACOLoader(dracoLoader);
-        oldmanLoader.setMeshoptDecoder(MeshoptDecoder);
-        oldmanLoader.load(
+        loader.load(
           '/models/oldmanidel.glb',
           (gltf) => {
             console.log('老人模型加载成功:', gltf);
@@ -1348,10 +1335,7 @@ export default {
 
       // 加载老妇人抚摸猫模型
       const loadOldwomanPetting = () => {
-        const oldwomanLoader = new GLTFLoader();
-        oldwomanLoader.setDRACOLoader(dracoLoader);
-        oldwomanLoader.setMeshoptDecoder(MeshoptDecoder);
-        oldwomanLoader.load(
+        loader.load(
           '/models/petting.glb',
           (gltf) => {
             console.log('老妇人模型加载成功:', gltf);
@@ -1412,10 +1396,7 @@ export default {
 
       // 加载猫模型
       const loadCat = () => {
-        const catLoader = new GLTFLoader();
-        catLoader.setDRACOLoader(dracoLoader);
-        catLoader.setMeshoptDecoder(MeshoptDecoder);
-        catLoader.load(
+        loader.load(
           '/models/cat.glb',
           (gltf) => {
             //console.log('猫模型加载成功:', gltf);
@@ -1468,10 +1449,7 @@ export default {
 
       // 加载茶点模型
       const loadTea = () => {
-        const teaLoader = new GLTFLoader();
-        teaLoader.setDRACOLoader(dracoLoader);
-        teaLoader.setMeshoptDecoder(MeshoptDecoder);
-        teaLoader.load(
+        loader.load(
           '/models/tea.glb',
           (gltf) => {
             console.log('茶点模型加载成功:', gltf);
@@ -1518,10 +1496,7 @@ export default {
 
       // 加载东厢房门模型
       const loadDoor = () => {
-        const doorLoader = new GLTFLoader();
-        doorLoader.setDRACOLoader(dracoLoader);
-        doorLoader.setMeshoptDecoder(MeshoptDecoder);
-        doorLoader.load(
+        loader.load(
           '/models/door.glb',
           (gltf) => {
             const model = gltf.scene;
@@ -1705,7 +1680,6 @@ export default {
           // 优化参数：较小偏移量+大步高+强贴地，确保低速上楼梯顺滑
           this.playerController = this.world.createCharacterController(0.005);
           this.playerController.enableAutostep(stairStepHeight + stairStepTolerance, 0.02, true);
-          this.playerController.enableSnapToGround(stairSnapDistance);
           this.playerController.setMaxSlopeClimbAngle(1.5);
           this.playerController.setMinSlopeSlideAngle(0.5);
 
@@ -1776,14 +1750,17 @@ export default {
       // 动画循环
       const animate = (currentTime) => {
         this.animationId = requestAnimationFrame(animate);
-        
+
         // 限制帧率到目标FPS
-        if (currentTime - lastFrameTime < getFrameInterval()) {
+        if (lastProcessedTime && currentTime - lastProcessedTime < getFrameInterval()) {
           return;
         }
-        lastFrameTime = currentTime;
-        
-        const delta = Math.min(clock.getDelta(), 0.1);
+
+        // 基于实际处理帧的时间差算 delta，跳过期间的时间也被正确计入
+        const delta = lastProcessedTime
+          ? Math.min((currentTime - lastProcessedTime) / 1000, 0.1)
+          : 1 / 60;
+        lastProcessedTime = currentTime;
         
         // 物理模拟
         this.world.step();
@@ -1832,10 +1809,8 @@ export default {
           } else {
             // 正常行走模式
             const moveSpeed = 4;
-            const gravity = 18;
-            const maxFallSpeed = 8;
-            const groundStickVelocity = -0.08;
-            const idleGroundStickVelocity = -0.02;
+            const gravity = 23;
+            const maxFallSpeed = 11;
             const groundedGraceDuration = 0.12;
 
             const hAngle = this.cameraAngle.horizontal;
@@ -1854,20 +1829,15 @@ export default {
             }
 
             // 处理垂直逻辑（跳跃与重力）
-            // 使用 groundedGraceTime 作为跳跃缓冲期，即使 isGrounded 为 false 也能跳跃
             if ((this.isGrounded || this.groundedGraceTime > 0) && this.keys[' '] && !this.jumpPressed) {
-              this.verticalVelocity = 6; // 跳跃初速度
+              this.verticalVelocity = 7;
               this.isGrounded = false;
               this.groundedGraceTime = 0;
-              this.jumpPressed = true; // 标记已跳跃，防止按住连续跳
-            } else {
-              // Short ground-assist window avoids low-speed stair jitter on step edges.
-              const useGroundAssist = (this.isGrounded || (this.groundedGraceTime > 0 && hasMoveInput)) && this.verticalVelocity <= 0;
-              if (useGroundAssist) {
-                this.verticalVelocity = hasMoveInput ? groundStickVelocity : idleGroundStickVelocity;
-              } else {
-                this.verticalVelocity = Math.max(this.verticalVelocity - gravity * delta, -maxFallSpeed);
-              }
+              this.jumpPressed = true;
+            } else if (this.isGrounded && this.verticalVelocity < 0) {
+              this.verticalVelocity = 0;
+            } else if (!this.isGrounded) {
+              this.verticalVelocity = Math.max(this.verticalVelocity - gravity * delta, -maxFallSpeed);
             }
 
             const movement = new THREE.Vector3(0, this.verticalVelocity * delta, 0);
@@ -1940,6 +1910,20 @@ export default {
             // Sync render body to the kinematic target to remove one-frame jitter.
             this.player.position.set(nextPos.x, nextPos.y, nextPos.z);
             this.playerPos = { x: nextPos.x, y: nextPos.y, z: nextPos.z };
+
+            // 视角摇晃计时器：地面移动时累积，停下/腾空时衰减
+            if (hasMoveInput && this.isGrounded) {
+              const isSprinting = this.keys['shift'];
+              const bobSpeed = isSprinting ? moveSpeed * 1.8 * 1.4 : moveSpeed * 1.1;
+              this.walkTime += delta * bobSpeed;
+            } else if (!hasMoveInput && this.isGrounded) {
+              this.walkTime *= 0.75;
+              if (Math.abs(Math.sin(this.walkTime * 2)) < 0.015) {
+                this.walkTime = 0;
+              }
+            } else {
+              this.walkTime *= 0.8;
+            }
           }
         }
 
@@ -1971,20 +1955,37 @@ export default {
           const targetCameraY = this.player.position.y + cameraEyeHeight;
           if (smoothedCameraY === null || this.flyMode) {
             smoothedCameraY = targetCameraY;
+          } else if (!this.isGrounded) {
+            // 跳跃/腾空时稍快跟踪，兼顾干脆和顺滑
+            smoothedCameraY += (targetCameraY - smoothedCameraY) * Math.min(1, delta * 16);
           } else {
+            // 地面时用平滑过渡，避免上下台阶时视角跳动
             const smoothFactor = 1 - Math.exp(-stairCameraSmooth * delta);
             smoothedCameraY += (targetCameraY - smoothedCameraY) * smoothFactor;
           }
           this.camera.position.y = smoothedCameraY;
 
-          // 计算视向目标
+          // 计算视向目标（基于未摇晃的相机位置）
           const target = new THREE.Vector3(
             this.camera.position.x + Math.sin(h) * Math.cos(v),
             this.camera.position.y + Math.sin(v),
             this.camera.position.z + Math.cos(h) * Math.cos(v)
           );
-
           this.camera.lookAt(target);
+
+          // 视角摇晃 (view bobbing)：lookAt 之后再偏移相机，纯平移不改变视线方向
+          // 不在地面或飞行时快速衰减摇晃
+          if (!this.isGrounded || this.flyMode) {
+            this.walkTime *= 0.8;
+          }
+          if (this.walkTime > 0.001 && this.isGrounded && !this.flyMode) {
+            const bobAmp = this.keys['shift'] ? 0.12 : 0.07;
+            // 左右摇摆：垂直于视线方向
+            this.camera.position.x += Math.sin(this.walkTime) * bobAmp * 0.5 * Math.cos(h);
+            this.camera.position.z += Math.sin(this.walkTime) * bobAmp * 0.5 * -Math.sin(h);
+            // 上下起伏：绝对值让每步一次起伏，两步一个完整周期
+            this.camera.position.y += Math.abs(Math.sin(this.walkTime * 2)) * bobAmp;
+          }
         }
 
         // 应用画质参数到光照与后处理
@@ -2978,6 +2979,21 @@ export default {
       // 主场景占70%，其他资源占30%
       const otherProgress = (this.loadedResources / (this.totalResources - 1)) * 30;
       this.loadingProgress = Math.min(100, 70 + otherProgress);
+    },
+
+    // 应用 GTAO 预设（画质/性能）
+    applyGtaoPreset(preset) {
+      if (!this.gtaoManager) return;
+      if (preset === 'performance') {
+        this.gtaoManager.updateParams(GTAOPresets.performance);
+      } else {
+        // 恢复当前用户调过的参数（保留 aoIntensity/aoRadius 的自定义值）
+        this.gtaoManager.updateParams({
+          ...GTAOPresets.modelingEnhanced,
+          intensity: this.aoIntensity,
+          radius: this.aoRadius,
+        });
+      }
     },
 
     // 加载完成后初始化
