@@ -284,6 +284,35 @@
       @close="closeQuestPanel"
     />
 
+    <!-- 结局短片 -->
+    <div v-if="showEndingVideo" class="ending-video-overlay" @click.self="skipEndingVideo">
+      <video
+        ref="endingVideoRef"
+        class="ending-video"
+        autoplay
+        @ended="onEndingVideoEnded"
+        @error="onEndingVideoError"
+      ></video>
+      <button class="skip-ending-btn" @click="skipEndingVideo">
+        {{ locale === 'zh' ? '跳过' : 'Skip' }}
+      </button>
+    </div>
+
+    <!-- 文字结尾兜底（视频加载失败时） -->
+    <div v-if="showEndingText" class="ending-text-overlay" @click="skipEndingText">
+      <div class="ending-text-content">
+        <div
+          v-for="(text, index) in endingTexts"
+          :key="index"
+          class="ending-line"
+          :class="{ 'visible': index <= endingTextIndex }"
+        >{{ text }}</div>
+      </div>
+      <div class="ending-continue" v-if="endingTextIndex >= endingTexts.length - 1">
+        {{ locale === 'zh' ? '点击继续' : 'Click to continue' }}
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -316,6 +345,7 @@ import CollectionView from './CollectionView.vue';
 import StoryIntro from './StoryIntro.vue';
 import {TeaCeremony as TeaCeremonyGame} from '../game/TeaCeremony.js';
 import {saveManager} from '../game/SaveManager.js';
+import {VoicePreloader} from '../utils/VoicePreloader.js';
 import {QuestManager} from '../game/QuestManager.js';
 import QuestPanel from './QuestPanel.vue';
 import QuestList from './QuestList.vue';
@@ -413,6 +443,10 @@ export default {
 
       _pendingBgmStart: false, // 等待用户交互后播放
       _bgmStarted: false, // 音乐是否已开始播放
+      showEndingVideo: false, // 结局短片是否播放中
+      showEndingText: false, // 文字结尾兜底
+      endingTextIndex: 0,
+      endingTexts: [],
       // 剧情系统
       storyManager: null,
       dialogueSystem: null,
@@ -870,7 +904,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
+      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头 + 语音预加载
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1707,6 +1741,12 @@ export default {
           loadFamilyPhoto();
           loadThirdSonPhoto();
           loadAllArrows();
+
+          // 语音预加载（在模型加载的同时开始）
+          this.voicePreloader = new VoicePreloader('/vocal/1/');
+          this.voicePreloader.preload().then(() => {
+            this.updateLoadingProgress();
+          });
           
           // 等待所有资源加载完成后再结束加载状态
           const checkAllLoaded = () => {
@@ -2135,6 +2175,11 @@ export default {
         audio.loop = true;
         audio.volume = Math.max(0, Math.min(1, this.musicVolume));
         audio.muted = !this.musicEnabled;
+        // 兜底：如果 loop 因浏览器行为失效，ended 事件也能保证继续播放
+        audio.addEventListener('ended', () => {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        });
         this.bgm = audio;
       }
       this.bgm.play().catch(() => { });
@@ -2857,11 +2902,72 @@ export default {
       this.showQuestPanel = false;
     },
 
-    // 播放结尾动画
+    // 播放结局短片
     playEnding() {
       const currentQuest = this.questManager.getCurrentQuest();
       if (currentQuest) {
         this.questManager.completeCurrentQuest();
+      }
+      document.exitPointerLock();
+      this.showEndingVideo = true;
+      if (this.bgm) {
+        this.bgm.pause();
+      }
+      this.$nextTick(() => {
+        const video = this.$refs.endingVideoRef;
+        if (video) {
+          video.src = '/video/ending.mp4';
+          video.load();
+          video.play().catch(() => {});
+        }
+      });
+    },
+
+    skipEndingVideo() {
+      this.hideEndingVideo();
+    },
+
+    onEndingVideoEnded() {
+      this.hideEndingVideo();
+    },
+
+    onEndingVideoError() {
+      // 视频不可用，回退到文字结尾
+      this.showEndingVideo = false;
+      this.showEndingText = true;
+      this.endingTexts = this.locale === 'zh' ? [
+        '石榴树又开花了。',
+        '王爷爷说，等石榴熟了，要留给三舅尝尝。',
+        '门一直开着。',
+        '等他们回来。'
+      ] : [
+        'The pomegranate tree is blooming again.',
+        'Grandpa Wang said, when the pomegranates are ripe, leave some for the third uncle.',
+        'The door remains open.',
+        'Waiting for them to return.'
+      ];
+      this.endingTextIndex = -1;
+      const next = () => {
+        if (this.endingTextIndex < this.endingTexts.length - 1) {
+          this.endingTextIndex++;
+          setTimeout(next, 3000);
+        }
+      };
+      setTimeout(next, 800);
+    },
+
+    skipEndingText() {
+      this.showEndingText = false;
+      if (this.bgm && this.musicEnabled) {
+        this.bgm.play().catch(() => {});
+      }
+      this.requestLock();
+    },
+
+    hideEndingVideo() {
+      this.showEndingVideo = false;
+      if (this.bgm && this.musicEnabled) {
+        this.bgm.play().catch(() => {});
       }
       this.requestLock();
     },
@@ -2934,11 +3040,27 @@ export default {
         }
       }
 
+      // 将预加载好的语音缓存注入对话系统，播放时直接读 Blob 不走网络
+      if (this.voicePreloader && this.voicePreloader.loaded) {
+        this.dialogueSystem.setVoiceCache(this.voicePreloader);
+      }
+
       // 预加载常用图片资源
       this.preloadImages();
 
       // 等待用户首次交互后再播放音乐（浏览器自动播放策略）
       this._pendingBgmStart = true;
+
+      // 后台预取结局短片（不阻塞游戏，浏览器空闲时自动下载）
+      this.prefetchEndingVideo();
+    },
+
+    prefetchEndingVideo() {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = '/video/ending.mp4';
+      link.as = 'video';
+      document.head.appendChild(link);
     },
 
     // 预加载图片资源
@@ -4665,6 +4787,86 @@ export default {
   text-align: center;
   padding-left: 20px;
   padding-bottom: 5px;
+}
+
+/* 结局短片覆盖层 */
+.ending-video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ending-video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.skip-ending-btn {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 28px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.skip-ending-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* 文字结尾兜底 */
+.ending-text-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ending-text-content {
+  max-width: 560px;
+  text-align: center;
+  padding: 0 40px;
+}
+
+.ending-line {
+  font-size: 24px;
+  color: transparent;
+  line-height: 2.2;
+  transition: color 1.2s ease;
+  user-select: none;
+  letter-spacing: 2px;
+}
+
+.ending-line.visible {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ending-continue {
+  margin-top: 48px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.45);
+  animation: ending-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ending-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 </style>

@@ -104,8 +104,23 @@
     <!-- 剧情介绍 -->
     <StoryIntro v-if="showIntro && !loading && !introCompleted" @complete="introCompleted = true" />
 
-    <!-- 结尾动画 -->
-    <div v-if="showEnding" class="ending-overlay">
+    <!-- 结局短片 -->
+    <div v-if="showEndingVideo" class="ending-video-overlay" @click.self="skipEndingVideo">
+      <video
+        ref="endingVideoRef"
+        class="ending-video"
+        autoplay
+        playsinline
+        @ended="onEndingVideoEnded"
+        @error="onEndingVideoError"
+      ></video>
+      <button class="skip-ending-btn" @touchstart.prevent="skipEndingVideo">
+        {{ locale === 'zh' ? '跳过' : 'Skip' }}
+      </button>
+    </div>
+
+    <!-- 结尾动画（视频不可用时的文字备用） -->
+    <div v-if="showEnding && !showEndingVideo" class="ending-overlay">
       <div class="ending-content">
         <div v-for="(text, index) in endingTexts" :key="index" class="ending-text" :class="{ 'show': index <= endingTextIndex }">{{ text }}</div>
       </div>
@@ -136,6 +151,7 @@ import {i18n} from '../utils/i18n.js';
 import StoryIntro from './StoryIntro.vue';
 
 import {saveManager} from '../game/SaveManager.js';
+import {VoicePreloader} from '../utils/VoicePreloader.js';
 import {QuestManager} from '../game/QuestManager.js';
 import FamilyPuzzle from './FamilyPuzzle.vue';
 import InkGrinding from './InkGrinding.vue';
@@ -224,6 +240,7 @@ export default {
 
       _pendingBgmStart: false, // 等待用户交互后播放
       _bgmStarted: false, // 音乐是否已开始播放
+      showEndingVideo: false, // 结局短片是否播放中
       // 剧情系统
       storyManager: null,
       dialogueSystem: null,
@@ -621,7 +638,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 17; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头
+      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头 + 语音预加载
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1457,7 +1474,13 @@ export default {
           loadFamilyPhoto();
           loadThirdSonPhoto();
           loadAllArrows();
-          
+
+          // 语音预加载（在模型加载的同时开始）
+          this.voicePreloader = new VoicePreloader('/vocal/1/');
+          this.voicePreloader.preload().then(() => {
+            this.updateLoadingProgress();
+          });
+
           // 等待所有资源加载完成后再结束加载状态
           const checkAllLoaded = () => {
             if (this.loadedResources >= this.totalResources) {
@@ -1839,6 +1862,11 @@ export default {
         audio.loop = true;
         audio.volume = Math.max(0, Math.min(1, this.musicVolume));
         audio.muted = !this.musicEnabled;
+        // 兜底：如果 loop 因浏览器行为失效，ended 事件也能保证继续播放
+        audio.addEventListener('ended', () => {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        });
         this.bgm = audio;
       }
       this.bgm.play().catch(() => { });
@@ -2643,9 +2671,9 @@ export default {
       this.showQuestPanel = false;
     },
 
-    // 播放结尾动画
+    // 播放结局短片
     playEnding() {
-      // 设置结尾文字
+      // 保留文字结尾数据作为视频加载失败时的备用
       this.endingTexts = this.locale === 'zh' ? [
         '石榴树又开花了。',
         '王爷爷说，等石榴熟了，要留给三舅尝尝。',
@@ -2657,30 +2685,73 @@ export default {
         'The door remains open.',
         'Waiting for them to return.'
       ];
-      this.endingTextIndex = -1;
+      this.showEndingVideo = true;
+      // 暂停 BGM，短片结束后恢复
+      if (this.bgm) {
+        this.bgm.pause();
+      }
+      // 动态设置视频 src（模板里直接写会被 Vite 在构建时解析）
+      this.$nextTick(() => {
+        const video = this.$refs.endingVideoRef;
+        if (video) {
+          video.src = '/video/ending.mp4';
+          video.load();
+          video.play().catch(() => {});
+        }
+      });
+    },
+
+    skipEndingVideo() {
+      this.hideEndingVideo();
+    },
+
+    onEndingVideoEnded() {
+      this.hideEndingVideo();
+    },
+
+    onEndingVideoError() {
+      // 视频加载失败时回退到文字结尾
+      console.warn('结局短片加载失败，使用文字结尾');
+      this.showEndingVideo = false;
       this.showEnding = true;
-      
-      // 逐行显示文字
+      this.playTextEnding();
+      // 恢复 BGM
+      if (this.bgm && this.musicEnabled) {
+        this.bgm.play().catch(() => {});
+      }
+    },
+
+    hideEndingVideo() {
+      this.showEndingVideo = false;
+      // 恢复 BGM
+      if (this.bgm && this.musicEnabled) {
+        this.bgm.play().catch(() => {});
+      }
+      const currentQuest = this.questManager.getCurrentQuest();
+      if (currentQuest) {
+        this.questManager.completeCurrentQuest();
+      }
+      this.requestLock();
+    },
+
+    // 文字结尾（视频不可用时的备用）
+    playTextEnding() {
+      this.endingTextIndex = -1;
       const showNextLine = () => {
         if (this.endingTextIndex < this.endingTexts.length - 1) {
           this.endingTextIndex++;
-          setTimeout(showNextLine, 3000); // 每3秒显示下一行
+          setTimeout(showNextLine, 3000);
         } else {
-          // 最后一行显示后，等待一段时间然后继续游戏
           setTimeout(() => {
             this.showEnding = false;
-            // 更新任务为"尽情探索四合院"
             const currentQuest = this.questManager.getCurrentQuest();
             if (currentQuest) {
               this.questManager.completeCurrentQuest();
             }
-            // 重新锁定鼠标，继续游戏
             this.requestLock();
           }, 5000);
         }
       };
-      
-      // 延迟开始显示第一行
       setTimeout(showNextLine, 1000);
     },
 
@@ -2752,11 +2823,27 @@ export default {
         }
       }
 
+      // 将预加载好的语音缓存注入对话系统，播放时直接读 Blob 不走网络
+      if (this.voicePreloader && this.voicePreloader.loaded) {
+        this.dialogueSystem.setVoiceCache(this.voicePreloader);
+      }
+
       // 预加载常用图片资源
       this.preloadImages();
 
       // 等待用户首次交互后再播放音乐（浏览器自动播放策略）
       this._pendingBgmStart = true;
+
+      // 后台预取结局短片（不阻塞游戏，浏览器空闲时自动下载）
+      this.prefetchEndingVideo();
+    },
+
+    prefetchEndingVideo() {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = '/video/ending.mp4';
+      link.as = 'video';
+      document.head.appendChild(link);
     },
 
     // 预加载图片资源
@@ -4625,5 +4712,36 @@ export default {
   color: #fff;
 }
 .setting-disabled { opacity: 0.5; pointer-events: none; }
+
+/* 结局短片覆盖层（移动端适配） */
+.ending-video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ending-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.skip-ending-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 24px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
 
 </style>

@@ -13,6 +13,7 @@ export class DialogueSystem {
         this.voiceAudio = new Audio();
         this.voiceAudio.preload = 'auto';
         this.voiceBasePath = '/vocal/1/';
+        this.voiceCache = null; // VoicePreloader 实例，非空时优先使用缓存
         this.characterImages = {
             'zh': {
                 '王爷爷': '/photo/Character2D/oldman.webp',
@@ -34,6 +35,10 @@ export class DialogueSystem {
         if (this.elements.continueHint) {
             this.elements.continueHint.textContent = this.getContinueText();
         }
+    }
+
+    setVoiceCache(cache) {
+        this.voiceCache = cache;
     }
 
     setMobileMode(isMobile) {
@@ -338,6 +343,15 @@ export class DialogueSystem {
 
     playVoicePath(path) {
         this.stopVoice();
+        // 优先使用预加载缓存，避免网络波动导致播放失败
+        if (this.voiceCache) {
+            const blobUrl = this.voiceCache.createBlobUrl(path);
+            if (blobUrl) {
+                this.voiceAudio.src = blobUrl;
+                this.voiceAudio.play().catch(() => {});
+                return;
+            }
+        }
         this.voiceAudio.src = path;
         this.voiceAudio.play().catch(() => {});
     }
@@ -346,8 +360,7 @@ export class DialogueSystem {
         this.stopVoice();
         const path = this.getVoicePath(text);
         if (!path) return;
-        this.voiceAudio.src = path;
-        this.voiceAudio.play().catch(() => {});
+        this.playVoicePath(path);
     }
 
     stopVoice() {
