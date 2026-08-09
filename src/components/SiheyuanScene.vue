@@ -883,14 +883,14 @@ export default {
       const moveDir = new THREE.Vector3();
       const finalDir = new THREE.Vector3();
       const stairStepHeight = 0.5;
-      const stairStepTolerance = 0.04;
+      const stairStepTolerance = 0.12;
       const stairCameraSmooth = 14;
       const cameraEyeHeight = 1.2;
       let smoothedCameraY = null;
 
-      // 帧率限制：基于实际处理帧的时间差计算 delta，避免跳帧导致的步长不均匀
-      let lastProcessedTime = 0;
-      const getFrameInterval = () => 1000 / this.targetFPS;
+      // 帧 timing：用 requestAnimationFrame 的 timestamp 计算真实 delta
+      let lastFrameTime = 0;
+      let smoothedFPS = 60; // 平滑后的 FPS 显示值
 
       // 加载模型
       const loader = new GLTFLoader();
@@ -1677,9 +1677,9 @@ export default {
           this.world.createCollider(capsuleColliderDesc, this.playerBody);
 
           // 创建人物控制器
-          // 优化参数：较小偏移量+大步高+强贴地，确保低速上楼梯顺滑
           this.playerController = this.world.createCharacterController(0.005);
           this.playerController.enableAutostep(stairStepHeight + stairStepTolerance, 0.02, true);
+          this.playerController.enableSnapToGround(0.2);
           this.playerController.setMaxSlopeClimbAngle(1.5);
           this.playerController.setMinSlopeSlideAngle(0.5);
 
@@ -1751,17 +1751,12 @@ export default {
       const animate = (currentTime) => {
         this.animationId = requestAnimationFrame(animate);
 
-        // 限制帧率到目标FPS
-        if (lastProcessedTime && currentTime - lastProcessedTime < getFrameInterval()) {
-          return;
-        }
-
-        // 基于实际处理帧的时间差算 delta，跳过期间的时间也被正确计入
-        const delta = lastProcessedTime
-          ? Math.min((currentTime - lastProcessedTime) / 1000, 0.1)
+        // 基于 rAF timestamp 算真实 delta，每帧都更新，不跳帧
+        const delta = lastFrameTime
+          ? Math.min((currentTime - lastFrameTime) / 1000, 0.1)
           : 1 / 60;
-        lastProcessedTime = currentTime;
-        
+        lastFrameTime = currentTime;
+
         // 物理模拟
         this.world.step();
 
@@ -2099,8 +2094,10 @@ export default {
 
         composer.render();
         stats.update();
-        // 更新FPS显示
-        this.currentFPS = Math.round(1 / delta);
+        // 平滑 FPS 显示，避免高帧率下数字剧烈跳动
+        const instantFPS = 1 / delta;
+        smoothedFPS += (instantFPS - smoothedFPS) * 0.1;
+        this.currentFPS = Math.round(smoothedFPS);
       };
       animate();
 
