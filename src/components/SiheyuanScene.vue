@@ -916,7 +916,7 @@ export default {
       };
 
       // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头 + 语音预加载
+      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、门（语音后台并行预载，不阻塞进度条）
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1716,11 +1716,12 @@ export default {
           loadThirdSonPhoto();
           loadAllArrows();
 
-          // 语音预加载（在模型加载的同时开始）
+          // 语音预加载：与模型并行下载（后台进行，不阻塞进度条完成），
+          // 进游戏时通常已全部缓存；未缓存前对话语音自动回退直连 URL
           this.voicePreloader = new VoicePreloader('/vocal/1/');
           this.voicePreloader.preload().then(() => {
-            this.updateLoadingProgress();
-          });
+            if (this.dialogueSystem) this.dialogueSystem.setVoiceCache(this.voicePreloader);
+          }).catch(() => {});
           
           // 等待所有资源加载完成后再结束加载状态
           const checkAllLoaded = () => {

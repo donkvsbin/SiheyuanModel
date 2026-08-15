@@ -18,6 +18,7 @@ export default defineConfig({
   build: {
     // 启用图片资源优化
     assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
         // 资源文件命名
@@ -28,6 +29,14 @@ export default defineConfig({
             return `assets/images/[name]-[hash][extname]`;
           }
           return `assets/[name]-[hash][extname]`;
+        },
+        // 拆分第三方库：便于浏览器缓存与并行下载（three.js 和 rapier 体积大且极少变动）
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('/three/')) return 'three';
+          if (id.includes('@dimforge')) return 'rapier';
+          if (id.includes('/vue/') || id.includes('/@vue/') || id.includes('/vue-router/')) return 'vue';
+          return 'vendor';
         },
       },
     },

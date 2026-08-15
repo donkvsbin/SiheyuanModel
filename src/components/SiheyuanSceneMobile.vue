@@ -153,8 +153,10 @@ import StoryIntro from './StoryIntro.vue';
 import {saveManager} from '../game/SaveManager.js';
 import {VoicePreloader} from '../utils/VoicePreloader.js';
 import {QuestManager} from '../game/QuestManager.js';
-import FamilyPuzzle from './FamilyPuzzle.vue';
-import InkGrinding from './InkGrinding.vue';
+import {defineAsyncComponent} from 'vue';
+// 拼图/磨墨小游戏按需异步加载，减小移动端首包体积
+const FamilyPuzzle = defineAsyncComponent(() => import('./FamilyPuzzle.vue'));
+const InkGrinding = defineAsyncComponent(() => import('./InkGrinding.vue'));
 import QuestPanel from './QuestPanel.vue';
 import InventoryPanel from './InventoryPanel.vue';
 
@@ -585,9 +587,9 @@ export default {
       directionalLight.target.position.copy(sunTargetWorld);
       directionalLight.castShadow = true;
 
-      // 阴影
-      directionalLight.shadow.mapSize.width = 2048;
-      directionalLight.shadow.mapSize.height = 2048;
+      // 阴影（移动端 1024，降低显存与带宽占用，同时减少 Safari 崩溃风险）
+      directionalLight.shadow.mapSize.width = 1024;
+      directionalLight.shadow.mapSize.height = 1024;
       directionalLight.shadow.camera.near = 1;
       directionalLight.shadow.camera.far = 500;
       directionalLight.shadow.camera.left = -60;
@@ -637,8 +639,8 @@ export default {
         });
       };
 
-      // 设置总资源数：主场景 + 16个模型/图片资源
-      this.totalResources = 18; // 主场景、引导箭头、箭头2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、所有箭头 + 语音预加载
+      // 设置总资源数：主场景 + 17 个模型/图片资源（语音已改为后台预加载，不再计入）
+      this.totalResources = 18; // 主场景、引导箭头×2、影壁、折扇、地契、毽子、族谱、毛笔、墨锭、全家福、三舅照片、老人、老妇人、猫、茶点、门
 
       // 加载引导箭头模型
       const loadGuidance = () => {
@@ -1475,11 +1477,14 @@ export default {
           loadThirdSonPhoto();
           loadAllArrows();
 
-          // 语音预加载（在模型加载的同时开始）
-          this.voicePreloader = new VoicePreloader('/vocal/1/');
-          this.voicePreloader.preload().then(() => {
-            this.updateLoadingProgress();
-          });
+          // 语音预加载：与模型并行开始下载（后台进行，不阻塞进度条），
+          // 进游戏时通常已全部缓存；个别未缓存到的对话语音自动回退直连 URL
+          if (!this.voicePreloader) {
+            this.voicePreloader = new VoicePreloader('/vocal/1/');
+            this.voicePreloader.preload().then(() => {
+              if (this.dialogueSystem) this.dialogueSystem.setVoiceCache(this.voicePreloader);
+            }).catch(() => {});
+          }
 
           // 等待所有资源加载完成后再结束加载状态
           const checkAllLoaded = () => {
@@ -2823,10 +2828,8 @@ export default {
         }
       }
 
-      // 将预加载好的语音缓存注入对话系统，播放时直接读 Blob 不走网络
-      if (this.voicePreloader && this.voicePreloader.loaded) {
-        this.dialogueSystem.setVoiceCache(this.voicePreloader);
-      }
+      // 语音已在加载进度条阶段启动预载（见加载流程），此处不再重复启动；
+      // 未缓存前播放语音自动回退为直连 URL（见 DialogueSystem.playVoicePath）
 
       // 预加载常用图片资源
       this.preloadImages();
